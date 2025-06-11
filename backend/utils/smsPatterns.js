@@ -36,11 +36,11 @@ export const transactionPatterns = {
     })
   },
   transferMoney: {
-    pattern: /\*165\*S\*(\d+) (\w{2,3}) transferred to ([\w\s]+\b) \((\d+)\) .+ fee was: (\d+) \w+/i,
+    pattern: /\*165\*S\*([\d,]+) (\w{2,3}) transferred to ([\w\s]+\b) \((\d+)\) .+ fee was: (\d+) \w+/i,
     extract: (matches, readable_date) => ({
       type: 'TRANSFER',
       transactionId: null,
-      amount: Number(matches[1]),
+      amount: Number(matches[1].replace(',', '')),
       currency: Number(matches[2]),
       recipient: matches[3],
       recipientNumber: matches[4],
@@ -49,10 +49,10 @@ export const transactionPatterns = {
     })
   },
   transferMoney_2: {
-    patterns: /you have transferred (\d+) (\w{2,3}) to ([\w\s]+\b) \((\d+)\).+financial \w+ id: (\d+)/i,
+    patterns: /you have transferred ([\d,]+) (\w{2,3}) to ([\w\s]+\b) \((\d+)\).+financial \w+ id: (\d+)/i,
     extract: (matches, readable_date) => ({
       type: 'TRANSFER',
-      amount: Number(matches[1]),
+      amount: Number(matches[1].replace(',', '')),
       currency: Number(matches[2]),
       recipient: matches[3],
       recipientNumber: matches[4],

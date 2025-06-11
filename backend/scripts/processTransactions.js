@@ -8,15 +8,9 @@ async function insertTransaction(transaction) {
       transaction.type &&
       transaction.amount &&
       transaction.timestamp) {
-    } else {
-      // console.log([
-      //   transaction.transactionId,
-      //   transaction.type,
-      //   transaction.amount,
-      //   transaction.timestamp,
-      //   JSON.stringify(transaction.details)
-      // ]);
       console.log(transaction);
+    } else {
+      // console.log(transaction);
     }
   } catch (error) {
     console.error(`Database insertion failed: ${error.message}`);
