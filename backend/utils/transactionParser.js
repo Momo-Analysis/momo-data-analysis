@@ -9,9 +9,6 @@ function parseSMSBody(smsBody, readable_date) {
       try {
         const transaction = extract(matches, readable_date);
         const { transactionId, type, amount, timestamp, ...details } = transaction;
-        if (!transactionId) {
-          break;
-        }
         return {
           transactionId,
           type,
