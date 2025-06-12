@@ -4,14 +4,8 @@ import {processTransactions} from '../utils/transactionParser.js';
 
 async function insertTransaction(transaction) {
   try {
-    if (transaction.transactionId &&
-      transaction.type &&
-      transaction.amount &&
-      transaction.timestamp) {
-      console.log(transaction);
-    } else {
-      // console.log(transaction);
-    }
+    // we'll have to use an auto increment id in the table
+    console.log(transaction);
   } catch (error) {
     console.error(`Database insertion failed: ${error.message}`);
     throw error;
