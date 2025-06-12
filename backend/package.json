@@ -7,9 +7,13 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
-    "parse": "node scripts/processTransactions.js"
+    "parse": "node scripts/processTransactions.js",
+    "setup:db": "node database/setup.js"
   },
   "dependencies": {
-    "fast-xml-parser": "^5.2.5"
+    "dotenv": "^16.5.0",
+    "fast-xml-parser": "^5.2.5",
+    "mysql2": "^3.14.1",
+    "node-mysql2": "^1.0.0"
   }
 }
