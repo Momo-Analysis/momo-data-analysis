@@ -1,762 +1,457 @@
-// Transactions page functionality for MTN MoMo SMS Analytics
-// Handles search, filtering, sorting, pagination, and export features
+document.addEventListener("DOMContentLoaded", () => {
+  // Mock Data based on API Contract
+  const mockApiData = {
+    transactions: [
+      {
+        id: 1,
+        type: "Incoming Money",
+        amount: 5000,
+        timestamp: "2025-05-15T10:00:00Z",
+        details: {
+          from: "John Doe",
+          transaction_id: "123456",
+          currency: "RWF",
+        },
+      },
+      {
+        id: 2,
+        type: "Payments to Code Holders",
+        amount: 1500,
+        timestamp: "2025-05-14T14:30:00Z",
+        details: {
+          to: "Jane Smith",
+          transaction_id: "789012",
+          currency: "RWF",
+        },
+      },
+      {
+        id: 3,
+        type: "Airtime Bill Payments",
+        amount: 3000,
+        timestamp: "2025-05-12T16:00:00Z",
+        details: { transaction_id: "345678", fee: 50, currency: "RWF" },
+      },
+      {
+        id: 4,
+        type: "Withdrawals from Agents",
+        amount: 20000,
+        timestamp: "2025-04-28T12:00:00Z",
+        details: {
+          agent_name: "Agent 007",
+          agent_number: "250123456789",
+          currency: "RWF",
+        },
+      },
+      {
+        id: 5,
+        type: "Internet and Voice Bundle Purchases",
+        amount: 2000,
+        timestamp: "2025-04-25T09:00:00Z",
+        details: { bundle: "1GB", currency: "RWF" },
+      },
+      {
+        id: 6,
+        type: "Incoming Money",
+        amount: 15000,
+        timestamp: "2025-04-20T11:00:00Z",
+        details: { from: "Alice", transaction_id: "987654", currency: "RWF" },
+      },
+      {
+        id: 7,
+        type: "Bank Transfers",
+        amount: 50000,
+        timestamp: "2025-04-15T18:00:00Z",
+        details: {
+          to_bank: "Bank of Kigali",
+          to_account: "1000123",
+          currency: "RWF",
+        },
+      },
+      {
+        id: 8,
+        type: "Cash Power Bill Payments",
+        amount: 12500,
+        timestamp: "2025-04-10T13:45:00Z",
+        details: {
+          meter_number: "04123456789",
+          token: "1234-5678-9012-3456",
+          currency: "RWF",
+        },
+      },
+      {
+        id: 9,
+        type: "Incoming Money",
+        amount: 7500,
+        timestamp: "2025-03-22T19:20:00Z",
+        details: { from: "Bob", transaction_id: "555444", currency: "RWF" },
+      },
+      {
+        id: 10,
+        type: "Payments to Code Holders",
+        amount: 4200,
+        timestamp: "2025-03-18T08:00:00Z",
+        details: {
+          to: "Groceries Store",
+          transaction_id: "333222",
+          currency: "RWF",
+        },
+      },
+      {
+        id: 11,
+        type: "Bank Deposits",
+        amount: 100000,
+        timestamp: "2025-03-10T15:00:00Z",
+        details: { to_bank: "Equity Bank", currency: "RWF" },
+      },
+      {
+        id: 12,
+        type: "Incoming Money",
+        amount: 2500,
+        timestamp: "2025-02-15T12:00:00Z",
+        details: { from: "Charlie", transaction_id: "111000", currency: "RWF" },
+      },
+      {
+        id: 13,
+        type: "Airtime Bill Payments",
+        amount: 5000,
+        timestamp: "2025-02-05T17:30:00Z",
+        details: { transaction_id: "999888", fee: 50, currency: "RWF" },
+      },
+      {
+        id: 14,
+        type: "Failed to Parse",
+        amount: 0,
+        timestamp: "2025-01-30T10:00:00Z",
+        details: {
+          raw_sms_body: "Yello! Your transfer of an unknown amount failed.",
+          error_message: "Amount not found",
+        },
+      },
+      {
+        id: 15,
+        type: "Incoming Money",
+        amount: 3000,
+        timestamp: "2025-01-20T14:00:00Z",
+        details: { from: "David", transaction_id: "777666", currency: "RWF" },
+      },
+    ],
+  };
+  const state = {
+    transactions: [],
+    filters: { type: "All Types", startDate: "", endDate: "", search: "" },
+    pagination: { currentPage: 1, limit: 7, totalPages: 1 },
+    sorting: { field: null, direction: "asc" },
+  };
 
-class TransactionsManager {
-  constructor() {
-    this.transactions = [];
-    this.filteredTransactions = [];
-    this.currentPage = 1;
-    this.pageSize = 25;
-    this.sortField = "timestamp";
-    this.sortDirection = "desc";
-    this.filters = {};
+  // --- UI RENDERING ---
 
-    this.init();
-  }
+  function renderTransactionList() {
+    const list = document.getElementById("transaction-list");
+    list.innerHTML = "";
+    const { currentPage, limit } = state.pagination;
+    const start = (currentPage - 1) * limit;
+    const end = start + limit;
 
-  /**
-   * Initialize the transactions manager
-   */
-  init() {
-    this.loadData();
-    this.setupEventListeners();
-    this.loadUserPreferences();
-  }
+    const filtered = getFilteredTransactions();
+    state.pagination.totalPages = Math.ceil(filtered.length / limit);
 
-  /**
-   * Load transaction data
-   */
-  loadData() {
-    showLoading();
+    const sorted = sortTransactions(
+      filtered,
+      state.sorting.field,
+      state.sorting.direction
+    );
 
-    // Simulate API call delay
-    setTimeout(() => {
-      this.transactions = mockTransactions;
-      this.filteredTransactions = [...this.transactions];
-      this.applySort();
-      this.renderTransactions();
-      this.updatePagination();
-      this.updateResultsSummary();
-
-      hideLoading();
-      showToast("Transactions loaded successfully", "success");
-    }, 800);
-  }
-
-  /**
-   * Setup event listeners
-   */
-  setupEventListeners() {
-    // Search input with debouncing
-    const searchInput = document.getElementById("search-input");
-    if (searchInput) {
-      searchInput.addEventListener(
-        "input",
-        debounce(() => this.handleSearch(), 300)
-      );
-    }
-
-    // Filter controls
-    const filterElements = [
-      "type-filter",
-      "status-filter",
-      "date-from",
-      "date-to",
-      "amount-min",
-      "amount-max",
-    ];
-
-    filterElements.forEach((id) => {
-      const element = document.getElementById(id);
-      if (element) {
-        element.addEventListener("change", () => this.applyFilters());
-      }
-    });
-
-    // Clear filters button
-    const clearFiltersBtn = document.getElementById("clear-filters");
-    if (clearFiltersBtn) {
-      clearFiltersBtn.addEventListener("click", () => this.clearFilters());
-    }
-
-    // Page size selector
-    const pageSizeSelect = document.getElementById("page-size");
-    if (pageSizeSelect) {
-      pageSizeSelect.addEventListener("change", (e) => {
-        this.pageSize = parseInt(e.target.value);
-        this.currentPage = 1;
-        this.renderTransactions();
-        this.updatePagination();
-        this.updateResultsSummary();
-        this.saveUserPreferences();
+    const paginated = sorted.slice(start, end);
+    if (paginated.length === 0) {
+      list.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">No transactions found for the selected filters.</td></tr>`;
+    } else {
+      paginated.forEach((tx) => {
+        const row = document.createElement("tr");
+        row.className = "hover:bg-gray-50 cursor-pointer";
+        row.dataset.transactionId = tx.id;
+        row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${
+                          tx.id
+                        }</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${
+                          tx.type
+                        }</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-900">${tx.amount.toLocaleString(
+                          "en-US"
+                        )} RWF</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm text-gray-500">${new Date(
+                          tx.timestamp
+                        ).toLocaleDateString()}</div>
+                    </td>
+                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                        <a href="#" class="text-blue-600 hover:text-blue-900">View</a>
+                    </td>
+                `;
+        list.appendChild(row);
       });
     }
+    renderPaginationControls();
+    updateSortIcons();
+  }
 
-    // Pagination buttons
-    this.setupPaginationListeners();
+  function renderPaginationControls() {
+    const container = document.getElementById("pagination-controls");
+    container.innerHTML = "";
+    const { currentPage, totalPages } = state.pagination;
 
-    // Sort headers
-    this.setupSortListeners();
+    if (totalPages <= 1) return;
 
-    // Export button
-    const exportBtn = document.getElementById("export-btn");
-    if (exportBtn) {
-      exportBtn.addEventListener("click", () => this.exportData());
+    const prevDisabled = currentPage === 1 ? "disabled" : "";
+    const nextDisabled = currentPage === totalPages ? "disabled" : "";
+
+    container.innerHTML = `
+            <button id="prev-page" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" ${prevDisabled}>Previous</button>
+            <span class="text-sm text-gray-700">Page ${currentPage} of ${totalPages}</span>
+            <button id="next-page" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" ${nextDisabled}>Next</button>
+        `;
+  }
+
+  function renderFilterOptions() {
+    const select = document.getElementById("filter-type");
+    const types = [...new Set(mockApiData.transactions.map((tx) => tx.type))];
+    types.forEach((type) => {
+      const option = document.createElement("option");
+      option.value = type;
+      option.textContent = type;
+      select.appendChild(option);
+    });
+  }
+
+  function renderModal(transaction) {
+    const modalContainer = document.getElementById("modal-container");
+    const modalContent = document.getElementById("modal-content");
+
+    let detailsHtml = `<ul class="space-y-2 text-sm">
+            <li><strong class="font-medium text-gray-600 w-24 inline-block">ID:</strong> ${
+              transaction.id
+            }</li>
+            <li><strong class="font-medium text-gray-600 w-24 inline-block">Type:</strong> ${
+              transaction.type
+            }</li>
+            <li><strong class="font-medium text-gray-600 w-24 inline-block">Amount:</strong> ${transaction.amount.toLocaleString(
+              "en-US"
+            )} RWF</li>
+            <li><strong class="font-medium text-gray-600 w-24 inline-block">Date:</strong> ${new Date(
+              transaction.timestamp
+            ).toLocaleString()}</li>
+        </ul><hr class="my-3">
+        <h4 class="font-semibold text-gray-800 mb-2">Additional Details:</h4>
+        <ul class="space-y-2 text-sm">`;
+
+    for (const [key, value] of Object.entries(transaction.details)) {
+      detailsHtml += `<li><strong class="font-medium text-gray-600 w-24 inline-block capitalize">${key.replace(
+        "_",
+        " "
+      )}:</strong> ${value}</li>`;
     }
 
-    // Refresh button
-    const refreshBtn = document.getElementById("refresh-btn");
-    if (refreshBtn) {
-      refreshBtn.addEventListener("click", () => this.loadData());
+    detailsHtml += `</ul>`;
+
+    modalContent.innerHTML = detailsHtml;
+    modalContainer.classList.remove("hidden");
+  }
+
+  // --- LOGIC & EVENT HANDLERS ---
+  function getFilteredTransactions() {
+    const { type, startDate, endDate, search } = state.filters;
+    return state.transactions.filter((tx) => {
+      const txDate = new Date(tx.timestamp);
+      const isTypeMatch = type === "All Types" || tx.type === type;
+      const isStartDateMatch = !startDate || txDate >= new Date(startDate);
+      const isEndDateMatch = !endDate || txDate <= new Date(endDate);
+
+      // Search functionality - search in type, amount, and details
+      const isSearchMatch =
+        !search ||
+        tx.type.toLowerCase().includes(search.toLowerCase()) ||
+        tx.id.toString().includes(search) ||
+        tx.amount.toString().includes(search) ||
+        Object.values(tx.details).some((detail) =>
+          detail.toString().toLowerCase().includes(search.toLowerCase())
+        );
+
+      return isTypeMatch && isStartDateMatch && isEndDateMatch && isSearchMatch;
+    });
+  }
+  function handleFilterChange() {
+    state.filters.type = document.getElementById("filter-type").value;
+    state.filters.startDate =
+      document.getElementById("filter-start-date").value;
+    state.filters.endDate = document.getElementById("filter-end-date").value;
+    state.filters.search = document.getElementById("search-input").value;
+    state.pagination.currentPage = 1;
+    renderTransactionList();
+  }
+  function sortTransactions(transactions, field, direction) {
+    if (!field) {
+      return transactions; // Return unsorted if no field is specified
     }
 
-    // Mobile menu toggle
-    const mobileMenuBtn = document.getElementById("mobile-menu-btn");
-    const mobileMenu = document.getElementById("mobile-menu");
-    if (mobileMenuBtn && mobileMenu) {
-      mobileMenuBtn.addEventListener("click", () => {
-        const isExpanded =
-          mobileMenuBtn.getAttribute("aria-expanded") === "true";
-        mobileMenuBtn.setAttribute("aria-expanded", !isExpanded);
-        mobileMenu.classList.toggle("hidden");
-      });
-    }
+    return [...transactions].sort((a, b) => {
+      let aValue, bValue;
 
-    // Keyboard shortcuts
-    document.addEventListener("keydown", (e) => {
-      // Ctrl/Cmd + F to focus search
-      if ((e.ctrlKey || e.metaKey) && e.key === "f") {
-        e.preventDefault();
-        searchInput?.focus();
+      switch (field) {
+        case "id":
+          aValue = a.id;
+          bValue = b.id;
+          break;
+        case "type":
+          aValue = a.type;
+          bValue = b.type;
+          break;
+        case "amount":
+          aValue = a.amount;
+          bValue = b.amount;
+          break;
+        case "timestamp":
+          aValue = new Date(a.timestamp);
+          bValue = new Date(b.timestamp);
+          break;
+        default:
+          return 0;
       }
 
-      // Ctrl/Cmd + R to refresh
-      if ((e.ctrlKey || e.metaKey) && e.key === "r") {
-        e.preventDefault();
-        this.loadData();
-      }
-
-      // Escape to clear search
-      if (e.key === "Escape") {
-        if (searchInput) {
-          searchInput.value = "";
-          this.handleSearch();
-        }
+      if (direction === "asc") {
+        if (aValue < bValue) return -1;
+        if (aValue > bValue) return 1;
+        return 0;
+      } else {
+        if (aValue > bValue) return -1;
+        if (aValue < bValue) return 1;
+        return 0;
       }
     });
   }
 
-  /**
-   * Setup pagination event listeners
-   */
-  setupPaginationListeners() {
-    const prevMobile = document.getElementById("prev-mobile");
-    const nextMobile = document.getElementById("next-mobile");
-    const prevDesktop = document.getElementById("prev-desktop");
-    const nextDesktop = document.getElementById("next-desktop");
+  function handleSort(field) {
+    // Toggle direction if clicking the same field, otherwise set to asc
+    if (state.sorting.field === field) {
+      state.sorting.direction =
+        state.sorting.direction === "asc" ? "desc" : "asc";
+    } else {
+      state.sorting.field = field;
+      state.sorting.direction = "asc";
+    }
 
-    [prevMobile, prevDesktop].forEach((btn) => {
-      if (btn) {
-        btn.addEventListener("click", () => this.goToPreviousPage());
-      }
-    });
-
-    [nextMobile, nextDesktop].forEach((btn) => {
-      if (btn) {
-        btn.addEventListener("click", () => this.goToNextPage());
-      }
-    });
+    // Reset pagination to first page
+    state.pagination.currentPage = 1;
+    renderTransactionList();
   }
 
-  /**
-   * Setup sort event listeners
-   */
-  setupSortListeners() {
+  function updateSortIcons() {
+    // Reset all sort icons
     const sortHeaders = document.querySelectorAll("[data-sort]");
     sortHeaders.forEach((header) => {
-      header.addEventListener("click", () => {
-        const field = header.getAttribute("data-sort");
-        this.handleSort(field);
-      });
-    });
-  }
-
-  /**
-   * Handle search functionality
-   */
-  handleSearch() {
-    const searchTerm = document.getElementById("search-input")?.value || "";
-    this.filters.search = searchTerm;
-    this.applyFilters();
-  }
-
-  /**
-   * Apply all filters
-   */
-  applyFilters() {
-    // Get filter values
-    this.filters = {
-      search: document.getElementById("search-input")?.value || "",
-      type: document.getElementById("type-filter")?.value || "",
-      status: document.getElementById("status-filter")?.value || "",
-      dateFrom: document.getElementById("date-from")?.value || "",
-      dateTo: document.getElementById("date-to")?.value || "",
-      amountMin:
-        parseFloat(document.getElementById("amount-min")?.value) || null,
-      amountMax:
-        parseFloat(document.getElementById("amount-max")?.value) || null,
-    };
-
-    // Apply filters
-    this.filteredTransactions = filterTransactions(
-      this.transactions,
-      this.filters
-    );
-
-    // Reset to first page
-    this.currentPage = 1;
-
-    // Apply sorting
-    this.applySort();
-
-    // Update display
-    this.renderTransactions();
-    this.updatePagination();
-    this.updateResultsSummary();
-
-    // Save preferences
-    this.saveUserPreferences();
-  }
-
-  /**
-   * Clear all filters
-   */
-  clearFilters() {
-    // Clear filter inputs
-    const filterElements = [
-      "search-input",
-      "type-filter",
-      "status-filter",
-      "date-from",
-      "date-to",
-      "amount-min",
-      "amount-max",
-    ];
-
-    filterElements.forEach((id) => {
-      const element = document.getElementById(id);
-      if (element) {
-        element.value = "";
-      }
+      const icon = header.querySelector("svg");
+      icon.classList.remove("text-blue-600");
+      icon.classList.add("text-gray-400");
     });
 
-    // Reset filters
-    this.filters = {};
-    this.filteredTransactions = [...this.transactions];
-    this.currentPage = 1;
-
-    // Apply sorting and update display
-    this.applySort();
-    this.renderTransactions();
-    this.updatePagination();
-    this.updateResultsSummary();
-
-    // Save preferences
-    this.saveUserPreferences();
-
-    showToast("Filters cleared successfully", "success");
-  }
-
-  /**
-   * Handle sorting
-   */
-  handleSort(field) {
-    if (this.sortField === field) {
-      // Toggle direction if same field
-      this.sortDirection = this.sortDirection === "asc" ? "desc" : "asc";
-    } else {
-      // New field, default to descending
-      this.sortField = field;
-      this.sortDirection = "desc";
-    }
-
-    this.applySort();
-    this.renderTransactions();
-    this.updateSortIndicators();
-    this.saveUserPreferences();
-  }
-
-  /**
-   * Apply current sort to filtered transactions
-   */
-  applySort() {
-    this.filteredTransactions.sort((a, b) => {
-      let aVal = a[this.sortField];
-      let bVal = b[this.sortField];
-
-      // Handle different data types
-      if (this.sortField === "amount") {
-        aVal = parseFloat(aVal) || 0;
-        bVal = parseFloat(bVal) || 0;
-      } else if (this.sortField === "timestamp") {
-        aVal = new Date(aVal);
-        bVal = new Date(bVal);
-      } else if (typeof aVal === "string") {
-        aVal = aVal.toLowerCase();
-        bVal = bVal.toLowerCase();
-      }
-
-      if (aVal < bVal) return this.sortDirection === "asc" ? -1 : 1;
-      if (aVal > bVal) return this.sortDirection === "asc" ? 1 : -1;
-      return 0;
-    });
-  }
-
-  /**
-   * Update sort indicators in table headers
-   */
-  updateSortIndicators() {
-    // Reset all sort indicators
-    document.querySelectorAll("[data-sort] svg").forEach((svg) => {
-      svg.classList.remove("text-blue-500");
-      svg.classList.add("text-gray-400");
-    });
-
-    // Highlight current sort field
-    const currentHeader = document.querySelector(
-      `[data-sort="${this.sortField}"] svg`
-    );
-    if (currentHeader) {
-      currentHeader.classList.remove("text-gray-400");
-      currentHeader.classList.add("text-blue-500");
-    }
-  }
-
-  /**
-   * Render transactions table
-   */
-  renderTransactions() {
-    const tbody = document.getElementById("transactions-tbody");
-    const emptyState = document.getElementById("empty-state");
-
-    if (!tbody) return;
-
-    // Calculate pagination
-    const startIndex = (this.currentPage - 1) * this.pageSize;
-    const endIndex = startIndex + this.pageSize;
-    const pageTransactions = this.filteredTransactions.slice(
-      startIndex,
-      endIndex
-    );
-
-    // Show/hide empty state
-    if (this.filteredTransactions.length === 0) {
-      tbody.innerHTML = "";
-      emptyState?.classList.remove("hidden");
-      return;
-    } else {
-      emptyState?.classList.add("hidden");
-    }
-
-    // Render transaction rows
-    tbody.innerHTML = pageTransactions
-      .map((transaction) => this.renderTransactionRow(transaction))
-      .join("");
-
-    // Add click listeners for transaction rows
-    tbody.querySelectorAll("tr[data-transaction-id]").forEach((row) => {
-      row.addEventListener("click", (e) => {
-        // Don't navigate if clicking on action buttons
-        if (e.target.closest("button")) return;
-
-        const transactionId = row.getAttribute("data-transaction-id");
-        this.viewTransactionDetail(transactionId);
-      });
-    });
-  }
-
-  /**
-   * Render individual transaction row
-   */
-  renderTransactionRow(transaction) {
-    const senderReceiver =
-      transaction.type === "incoming_money"
-        ? `From: ${transaction.sender || "Unknown"}`
-        : `To: ${transaction.receiver || "Unknown"}`;
-
-    return `
-      <tr data-transaction-id="${
-        transaction.id
-      }" class="hover:bg-gray-50 cursor-pointer">
-        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-blue-600">
-          ${transaction.id}
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-          <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-            ${transactionTypeLabels[transaction.type] || transaction.type}
-          </span>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-semibold">
-          ${formatCurrency(transaction.amount)}
-          ${
-            transaction.fee > 0
-              ? `<div class="text-xs text-gray-500">Fee: ${formatCurrency(
-                  transaction.fee
-                )}</div>`
-              : ""
-          }
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-          <div>${formatDate(transaction.timestamp, "short")}</div>
-          <div class="text-xs text-gray-500">${formatDate(
-            transaction.timestamp,
-            "time"
-          )}</div>
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-          <div class="max-w-xs truncate">${senderReceiver}</div>
-          ${
-            transaction.description
-              ? `<div class="text-xs text-gray-500 max-w-xs truncate">${transaction.description}</div>`
-              : ""
-          }
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap">
-          ${getStatusBadge(transaction.status)}
-        </td>
-        <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-          <button onclick="event.stopPropagation(); window.transactionsManager.viewTransactionDetail('${
-            transaction.id
-          }')" class="text-blue-600 hover:text-blue-900 mr-2">
-            View
-          </button>
-          <button onclick="event.stopPropagation(); window.transactionsManager.exportSingle('${
-            transaction.id
-          }')" class="text-gray-600 hover:text-gray-900">
-            Export
-          </button>
-        </td>
-      </tr>
-    `;
-  }
-
-  /**
-   * Update pagination controls
-   */
-  updatePagination() {
-    const totalPages = Math.ceil(
-      this.filteredTransactions.length / this.pageSize
-    );
-
-    // Update page info
-    const currentPageEl = document.getElementById("current-page");
-    const totalPagesEl = document.getElementById("total-pages");
-
-    if (currentPageEl) currentPageEl.textContent = this.currentPage;
-    if (totalPagesEl) totalPagesEl.textContent = totalPages;
-
-    // Update button states
-    const prevButtons = [
-      document.getElementById("prev-mobile"),
-      document.getElementById("prev-desktop"),
-    ];
-    const nextButtons = [
-      document.getElementById("next-mobile"),
-      document.getElementById("next-desktop"),
-    ];
-
-    prevButtons.forEach((btn) => {
-      if (btn) {
-        btn.disabled = this.currentPage <= 1;
-      }
-    });
-
-    nextButtons.forEach((btn) => {
-      if (btn) {
-        btn.disabled = this.currentPage >= totalPages;
-      }
-    });
-
-    // Update page numbers
-    this.updatePageNumbers(totalPages);
-  }
-
-  /**
-   * Update page number buttons
-   */
-  updatePageNumbers(totalPages) {
-    const pageNumbersContainer = document.getElementById("page-numbers");
-    if (!pageNumbersContainer) return;
-
-    pageNumbersContainer.innerHTML = "";
-
-    // Show page numbers with ellipsis for large page counts
-    const maxVisible = 5;
-    let startPage = Math.max(1, this.currentPage - Math.floor(maxVisible / 2));
-    let endPage = Math.min(totalPages, startPage + maxVisible - 1);
-
-    if (endPage - startPage + 1 < maxVisible) {
-      startPage = Math.max(1, endPage - maxVisible + 1);
-    }
-
-    // Add first page and ellipsis if needed
-    if (startPage > 1) {
-      pageNumbersContainer.appendChild(this.createPageButton(1));
-      if (startPage > 2) {
-        pageNumbersContainer.appendChild(this.createEllipsis());
-      }
-    }
-
-    // Add visible page numbers
-    for (let i = startPage; i <= endPage; i++) {
-      pageNumbersContainer.appendChild(
-        this.createPageButton(i, i === this.currentPage)
+    // Update active sort icon
+    if (state.sorting.field) {
+      const activeHeader = document.querySelector(
+        `[data-sort="${state.sorting.field}"]`
       );
-    }
+      if (activeHeader) {
+        const icon = activeHeader.querySelector("svg");
+        icon.classList.remove("text-gray-400");
+        icon.classList.add("text-blue-600");
 
-    // Add last page and ellipsis if needed
-    if (endPage < totalPages) {
-      if (endPage < totalPages - 1) {
-        pageNumbersContainer.appendChild(this.createEllipsis());
+        // Update icon direction
+        const path = icon.querySelector("path");
+        if (state.sorting.direction === "desc") {
+          path.setAttribute(
+            "d",
+            "M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+          );
+        } else {
+          path.setAttribute(
+            "d",
+            "M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+          );
+        }
       }
-      pageNumbersContainer.appendChild(this.createPageButton(totalPages));
     }
   }
 
-  /**
-   * Create page button element
-   */
-  createPageButton(pageNumber, isActive = false) {
-    const button = document.createElement("button");
-    button.textContent = pageNumber;
-    button.className = isActive
-      ? "relative inline-flex items-center px-4 py-2 border border-blue-500 bg-blue-50 text-sm font-medium text-blue-600"
-      : "relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50";
+  // Event Listeners
+  // Dynamic filtering - no apply button needed
+  document
+    .getElementById("filter-type")
+    .addEventListener("change", handleFilterChange);
+  document
+    .getElementById("filter-start-date")
+    .addEventListener("change", handleFilterChange);
+  document
+    .getElementById("filter-end-date")
+    .addEventListener("change", handleFilterChange);
+  document
+    .getElementById("search-input")
+    .addEventListener("input", handleFilterChange);
 
-    if (!isActive) {
-      button.addEventListener("click", () => this.goToPage(pageNumber));
-    }
+  document
+    .getElementById("pagination-controls")
+    .addEventListener("click", (e) => {
+      if (e.target.id === "prev-page") {
+        if (state.pagination.currentPage > 1) {
+          state.pagination.currentPage--;
+          renderTransactionList();
+        }
+      }
+      if (e.target.id === "next-page") {
+        if (state.pagination.currentPage < state.pagination.totalPages) {
+          state.pagination.currentPage++;
+          renderTransactionList();
+        }
+      }
+    });
 
-    return button;
-  }
+  document.getElementById("transaction-list").addEventListener("click", (e) => {
+    const row = e.target.closest("tr");
+    if (!row) return;
 
-  /**
-   * Create ellipsis element
-   */
-  createEllipsis() {
-    const span = document.createElement("span");
-    span.textContent = "...";
-    span.className =
-      "relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700";
-    return span;
-  }
-
-  /**
-   * Navigate to specific page
-   */
-  goToPage(pageNumber) {
-    this.currentPage = pageNumber;
-    this.renderTransactions();
-    this.updatePagination();
-    this.updateResultsSummary();
-
-    // Scroll to top of table
-    document.querySelector("table")?.scrollIntoView({ behavior: "smooth" });
-  }
-
-  /**
-   * Go to previous page
-   */
-  goToPreviousPage() {
-    if (this.currentPage > 1) {
-      this.goToPage(this.currentPage - 1);
-    }
-  }
-
-  /**
-   * Go to next page
-   */
-  goToNextPage() {
-    const totalPages = Math.ceil(
-      this.filteredTransactions.length / this.pageSize
+    const transactionId = parseInt(row.dataset.transactionId);
+    const transaction = state.transactions.find(
+      (tx) => tx.id === transactionId
     );
-    if (this.currentPage < totalPages) {
-      this.goToPage(this.currentPage + 1);
+    if (transaction) {
+      renderModal(transaction);
     }
-  }
+  });
 
-  /**
-   * Update results summary
-   */
-  updateResultsSummary() {
-    const total = this.filteredTransactions.length;
-    const startIndex = (this.currentPage - 1) * this.pageSize + 1;
-    const endIndex = Math.min(this.currentPage * this.pageSize, total);
+  document.getElementById("modal-close").addEventListener("click", () => {
+    document.getElementById("modal-container").classList.add("hidden");
+  });
 
-    const startEl = document.getElementById("results-start");
-    const endEl = document.getElementById("results-end");
-    const totalEl = document.getElementById("results-total");
-
-    if (startEl) startEl.textContent = total > 0 ? startIndex : 0;
-    if (endEl) endEl.textContent = total > 0 ? endIndex : 0;
-    if (totalEl) totalEl.textContent = total;
-  }
-
-  /**
-   * View transaction detail
-   */
-  viewTransactionDetail(transactionId) {
-    // Navigate to transaction detail page
-    window.location.href = `transaction.html?id=${transactionId}`;
-  }
-
-  /**
-   * Export data functionality
-   */
-  exportData() {
-    const dataToExport = this.filteredTransactions.map((transaction) => ({
-      "Transaction ID": transaction.id,
-      Type: transactionTypeLabels[transaction.type] || transaction.type,
-      "Amount (RWF)": transaction.amount,
-      "Fee (RWF)": transaction.fee,
-      Date: formatDate(transaction.timestamp, "long"),
-      Sender: transaction.sender || "",
-      Receiver: transaction.receiver || "",
-      Status: transaction.status,
-      Description: transaction.description || "",
-    }));
-
-    this.downloadCSV(dataToExport, "mtn-momo-transactions.csv");
-    showToast(`Exported ${dataToExport.length} transactions`, "success");
-  }
-
-  /**
-   * Export single transaction
-   */
-  exportSingle(transactionId) {
-    const transaction = this.transactions.find((t) => t.id === transactionId);
-    if (!transaction) return;
-
-    const dataToExport = [
-      {
-        "Transaction ID": transaction.id,
-        Type: transactionTypeLabels[transaction.type] || transaction.type,
-        "Amount (RWF)": transaction.amount,
-        "Fee (RWF)": transaction.fee,
-        Date: formatDate(transaction.timestamp, "long"),
-        Sender: transaction.sender || "",
-        Receiver: transaction.receiver || "",
-        Status: transaction.status,
-        Description: transaction.description || "",
-      },
-    ];
-
-    this.downloadCSV(dataToExport, `transaction-${transactionId}.csv`);
-    showToast("Transaction exported successfully", "success");
-  }
-
-  /**
-   * Download data as CSV
-   */
-  downloadCSV(data, filename) {
-    if (data.length === 0) {
-      showToast("No data to export", "warning");
-      return;
+  // Sort event listeners
+  document.addEventListener("click", (e) => {
+    const sortHeader = e.target.closest("[data-sort]");
+    if (sortHeader) {
+      const field = sortHeader.getAttribute("data-sort");
+      handleSort(field);
     }
+  });
 
-    const headers = Object.keys(data[0]);
-    const csvContent = [
-      headers.join(","),
-      ...data.map((row) =>
-        headers.map((header) => `"${row[header]}"`).join(",")
-      ),
-    ].join("\n");
-
-    const blob = new Blob([csvContent], { type: "text/csv" });
-    const url = window.URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.href = url;
-    link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.URL.revokeObjectURL(url);
+  // --- INITIALIZATION ---
+  function init() {
+    state.transactions = mockApiData.transactions.sort(
+      (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
+    );
+    renderFilterOptions();
+    renderTransactionList();
   }
 
-  /**
-   * Save user preferences
-   */
-  saveUserPreferences() {
-    const preferences = {
-      pageSize: this.pageSize,
-      sortField: this.sortField,
-      sortDirection: this.sortDirection,
-      filters: this.filters,
-    };
-
-    savePreference("transactions-preferences", preferences);
-  }
-
-  /**
-   * Load user preferences
-   */
-  loadUserPreferences() {
-    const preferences = loadPreference("transactions-preferences", {});
-
-    if (preferences.pageSize) {
-      this.pageSize = preferences.pageSize;
-      const pageSizeSelect = document.getElementById("page-size");
-      if (pageSizeSelect) {
-        pageSizeSelect.value = this.pageSize;
-      }
-    }
-
-    if (preferences.sortField) {
-      this.sortField = preferences.sortField;
-      this.sortDirection = preferences.sortDirection || "desc";
-    }
-
-    if (preferences.filters) {
-      this.filters = preferences.filters;
-      // Apply saved filters to form elements
-      Object.entries(this.filters).forEach(([key, value]) => {
-        let elementId;
-        switch (key) {
-          case "search":
-            elementId = "search-input";
-            break;
-          case "type":
-            elementId = "type-filter";
-            break;
-          case "status":
-            elementId = "status-filter";
-            break;
-          case "dateFrom":
-            elementId = "date-from";
-            break;
-          case "dateTo":
-            elementId = "date-to";
-            break;
-          case "amountMin":
-            elementId = "amount-min";
-            break;
-          case "amountMax":
-            elementId = "amount-max";
-            break;
-        }
-
-        if (elementId && value) {
-          const element = document.getElementById(elementId);
-          if (element) {
-            element.value = value;
-          }
-        }
-      });
-    }
-  }
-}
-
-// Initialize when DOM is loaded
-document.addEventListener("DOMContentLoaded", function () {
-  window.transactionsManager = new TransactionsManager();
+  init();
 });

@@ -1,652 +1,330 @@
-// Dashboard functionality for MTN MoMo SMS Analytics
-// Handles chart rendering, data display, and user interactions
+document.addEventListener("DOMContentLoaded", () => {
+  // Mock Data based on API Contract
+  const mockApiData = {
+    transactions: [
+      {
+        id: 1,
+        type: "Incoming Money",
+        amount: 5000,
+        timestamp: "2025-05-15T10:00:00Z",
+        details: {
+          from: "John Doe",
+          transaction_id: "123456",
+          currency: "RWF",
+        },
+      },
+      {
+        id: 2,
+        type: "Payments to Code Holders",
+        amount: 1500,
+        timestamp: "2025-05-14T14:30:00Z",
+        details: {
+          to: "Jane Smith",
+          transaction_id: "789012",
+          currency: "RWF",
+        },
+      },
+      {
+        id: 3,
+        type: "Airtime Bill Payments",
+        amount: 3000,
+        timestamp: "2025-05-12T16:00:00Z",
+        details: { transaction_id: "345678", fee: 50, currency: "RWF" },
+      },
+      {
+        id: 4,
+        type: "Withdrawals from Agents",
+        amount: 20000,
+        timestamp: "2025-04-28T12:00:00Z",
+        details: {
+          agent_name: "Agent 007",
+          agent_number: "250123456789",
+          currency: "RWF",
+        },
+      },
+      {
+        id: 5,
+        type: "Internet and Voice Bundle Purchases",
+        amount: 2000,
+        timestamp: "2025-04-25T09:00:00Z",
+        details: { bundle: "1GB", currency: "RWF" },
+      },
+      {
+        id: 6,
+        type: "Incoming Money",
+        amount: 15000,
+        timestamp: "2025-04-20T11:00:00Z",
+        details: { from: "Alice", transaction_id: "987654", currency: "RWF" },
+      },
+      {
+        id: 7,
+        type: "Bank Transfers",
+        amount: 50000,
+        timestamp: "2025-04-15T18:00:00Z",
+        details: {
+          to_bank: "Bank of Kigali",
+          to_account: "1000123",
+          currency: "RWF",
+        },
+      },
+      {
+        id: 8,
+        type: "Cash Power Bill Payments",
+        amount: 12500,
+        timestamp: "2025-04-10T13:45:00Z",
+        details: {
+          meter_number: "04123456789",
+          token: "1234-5678-9012-3456",
+          currency: "RWF",
+        },
+      },
+      {
+        id: 9,
+        type: "Incoming Money",
+        amount: 7500,
+        timestamp: "2025-03-22T19:20:00Z",
+        details: { from: "Bob", transaction_id: "555444", currency: "RWF" },
+      },
+      {
+        id: 10,
+        type: "Payments to Code Holders",
+        amount: 4200,
+        timestamp: "2025-03-18T08:00:00Z",
+        details: {
+          to: "Groceries Store",
+          transaction_id: "333222",
+          currency: "RWF",
+        },
+      },
+      {
+        id: 11,
+        type: "Bank Deposits",
+        amount: 100000,
+        timestamp: "2025-03-10T15:00:00Z",
+        details: { to_bank: "Equity Bank", currency: "RWF" },
+      },
+      {
+        id: 12,
+        type: "Incoming Money",
+        amount: 2500,
+        timestamp: "2025-02-15T12:00:00Z",
+        details: { from: "Charlie", transaction_id: "111000", currency: "RWF" },
+      },
+      {
+        id: 13,
+        type: "Airtime Bill Payments",
+        amount: 5000,
+        timestamp: "2025-02-05T17:30:00Z",
+        details: { transaction_id: "999888", fee: 50, currency: "RWF" },
+      },
+      {
+        id: 14,
+        type: "Failed to Parse",
+        amount: 0,
+        timestamp: "2025-01-30T10:00:00Z",
+        details: {
+          raw_sms_body: "Yello! Your transfer of an unknown amount failed.",
+          error_message: "Amount not found",
+        },
+      },
+      {
+        id: 15,
+        type: "Incoming Money",
+        amount: 3000,
+        timestamp: "2025-01-20T14:00:00Z",
+        details: { from: "David", transaction_id: "777666", currency: "RWF" },
+      },
+    ],
+    dashboardSummary: {
+      totalVolumeByType: [],
+      monthlySummary: [],
+      distribution: { payments: {}, deposits: {} },
+    },
+  };
 
-class MoMoDashboard {
-  constructor() {
-    this.transactions = [];
-    this.filteredTransactions = [];
-    this.charts = {};
-    this.currentFilters = {};
+  const state = {
+    transactions: [],
+  };
 
-    this.init();
-  }
+  const chartInstances = {};
 
-  /**
-   * Initialize the dashboard
-   */
-  init() {
-    this.loadData();
-    this.setupEventListeners();
-    this.loadUserPreferences();
-  }
+  // --- DATA PROCESSING ---
+  function processDataForDashboard(transactions) {
+    const summary = {
+      totalVolumeByType: {},
+      monthlySummary: Array(12)
+        .fill(0)
+        .map((_, i) => ({
+          month: new Date(0, i).toLocaleString("default", { month: "short" }),
+          income: 0,
+          expenditure: 0,
+        })),
+      distribution: { payments: {}, deposits: {} },
+    };
 
-  /**
-   * Load mock data and render dashboard
-   */
-  loadData() {
-    showLoading();
-
-    // Simulate API call delay
-    setTimeout(() => {
-      this.transactions = mockTransactions;
-      this.filteredTransactions = [...this.transactions];
-
-      this.renderSummaryCards();
-      this.renderCharts();
-      this.updateQuickStats();
-
-      hideLoading();
-      showToast("Dashboard data loaded successfully", "success");
-    }, 1000);
-  }
-
-  /**
-   * Setup event listeners for filters and interactions
-   */
-  setupEventListeners() {
-    // Filter controls
-    const applyFiltersBtn = document.getElementById("apply-filters");
-    const resetFiltersBtn = document.getElementById("reset-filters");
-
-    if (applyFiltersBtn) {
-      applyFiltersBtn.addEventListener("click", () => this.applyFilters());
-    }
-
-    if (resetFiltersBtn) {
-      resetFiltersBtn.addEventListener("click", () => this.resetFilters());
-    }
-
-    // Real-time filter updates
-    const filterInputs = [
-      "transaction-type",
-      "date-from",
-      "date-to",
-      "amount-min",
-      "amount-max",
+    const incomeTypes = ["Incoming Money", "Bank Deposits"];
+    const paymentTypes = [
+      "Payments to Code Holders",
+      "Airtime Bill Payments",
+      "Cash Power Bill Payments",
+      "Withdrawals from Agents",
+      "Bank Transfers",
+      "Internet and Voice Bundle Purchases",
     ];
 
-    filterInputs.forEach((id) => {
-      const element = document.getElementById(id);
-      if (element) {
-        element.addEventListener(
-          "change",
-          debounce(() => this.applyFilters(), 300)
-        );
+    transactions.forEach((tx) => {
+      // Total Volume
+      if (tx.type !== "Failed to Parse") {
+        summary.totalVolumeByType[tx.type] =
+          (summary.totalVolumeByType[tx.type] || 0) + tx.amount;
+      }
+
+      const monthIndex = new Date(tx.timestamp).getMonth();
+
+      // Monthly Summary & Distribution
+      if (incomeTypes.includes(tx.type)) {
+        summary.monthlySummary[monthIndex].income += tx.amount;
+        summary.distribution.deposits[tx.type] =
+          (summary.distribution.deposits[tx.type] || 0) + tx.amount;
+      } else if (paymentTypes.includes(tx.type)) {
+        summary.monthlySummary[monthIndex].expenditure += tx.amount;
+        summary.distribution.payments[tx.type] =
+          (summary.distribution.payments[tx.type] || 0) + tx.amount;
       }
     });
 
-    // Window resize handler for responsive charts
-    window.addEventListener(
-      "resize",
-      debounce(() => this.resizeCharts(), 250)
-    );
+    mockApiData.dashboardSummary.totalVolumeByType = Object.entries(
+      summary.totalVolumeByType
+    ).map(([type, totalAmount]) => ({ type, totalAmount }));
+    mockApiData.dashboardSummary.monthlySummary = summary.monthlySummary;
+    mockApiData.dashboardSummary.distribution = summary.distribution;
   }
 
-  /**
-   * Render summary cards with analytics data
-   */
-  renderSummaryCards() {
-    const analytics = calculateAnalytics(this.filteredTransactions);
+  // --- UI RENDERING ---
 
-    // Update card values with animation
-    this.updateCardValue("total-transactions", analytics.totalTransactions);
-    this.updateCardValue(
-      "total-volume",
-      formatCurrency(analytics.totalVolume),
-      true
-    );
-    this.updateCardValue("month-transactions", analytics.monthTransactions);
-    this.updateCardValue(
-      "avg-amount",
-      formatCurrency(analytics.averageAmount),
-      true
-    );
+  function renderDashboard() {
+    renderTotalVolumeCards();
+    renderMonthlySummaryChart();
+    renderDistributionChart();
   }
+  function renderTotalVolumeCards() {
+    const transactions = state.transactions.filter(
+      (tx) => tx.type !== "Failed to Parse"
+    );
 
-  /**
-   * Update card value with animation
-   */
-  updateCardValue(elementId, value, isCurrency = false) {
-    const element = document.getElementById(elementId);
-    if (!element) return;
+    // Calculate metrics
+    const totalTransactions = transactions.length;
+    const totalVolume = transactions.reduce((sum, tx) => sum + tx.amount, 0);
+    const averageAmount =
+      totalTransactions > 0 ? totalVolume / totalTransactions : 0;
+    const transactionTypes = [...new Set(transactions.map((tx) => tx.type))]
+      .length;
 
-    if (isCurrency) {
-      element.textContent = value;
-    } else {
-      animateCounter(element, parseInt(value) || 0);
+    // Update card elements
+    const totalTransactionsEl = document.getElementById("total-transactions");
+    const totalVolumeEl = document.getElementById("total-volume");
+    const transactionTypesEl = document.getElementById("transaction-types");
+    const avgAmountEl = document.getElementById("avg-amount");
+
+    if (totalTransactionsEl) {
+      totalTransactionsEl.textContent =
+        totalTransactions.toLocaleString("en-US");
+    }
+    if (totalVolumeEl) {
+      totalVolumeEl.textContent = totalVolume.toLocaleString("en-US");
+    }
+    if (transactionTypesEl) {
+      transactionTypesEl.textContent = transactionTypes.toString();
+    }
+    if (avgAmountEl) {
+      avgAmountEl.textContent =
+        Math.round(averageAmount).toLocaleString("en-US");
     }
   }
 
-  /**
-   * Render all charts
-   */
-  renderCharts() {
-    this.renderVolumeByTypeChart();
-    this.renderPaymentDistributionChart();
-    this.renderMonthlySummaryChart();
+  function renderChart(canvasId, type, data, options) {
+    if (chartInstances[canvasId]) {
+      chartInstances[canvasId].destroy();
+    }
+    const ctx = document.getElementById(canvasId).getContext("2d");
+    chartInstances[canvasId] = new Chart(ctx, { type, data, options });
   }
 
-  /**
-   * Render transaction volume by type horizontal bar chart
-   */
-  renderVolumeByTypeChart() {
-    const chartContainer = document.getElementById("volume-by-type-chart");
-    if (!chartContainer) return;
-
-    // Calculate data from filtered transactions
-    const typeData = this.calculateVolumeByType();
-
-    const options = {
-      series: [
+  function renderMonthlySummaryChart() {
+    const { monthlySummary } = mockApiData.dashboardSummary;
+    const data = {
+      labels: monthlySummary.map((d) => d.month),
+      datasets: [
         {
-          name: "Transaction Volume",
-          data: Object.values(typeData),
+          label: "Income",
+          data: monthlySummary.map((d) => d.income),
+          backgroundColor: "rgba(0, 79, 113, 0.7)",
+          borderColor: "#004f71",
+          borderWidth: 1,
+        },
+        {
+          label: "Expenditure",
+          data: monthlySummary.map((d) => d.expenditure),
+          backgroundColor: "rgba(178, 34, 34, 0.7)",
+          borderColor: "rgba(178, 34, 34, 0.7)",
+          borderWidth: 1,
         },
       ],
-      chart: {
-        type: "bar",
-        height: 300,
-        toolbar: {
-          show: false,
-        },
-        background: "transparent",
-      },
-      plotOptions: {
-        bar: {
-          borderRadius: 4,
-          horizontal: true,
-          distributed: true,
-          barHeight: "70%",
-        },
-      },
-      dataLabels: {
-        enabled: true,
-        formatter: function (val) {
-          return formatCurrency(val);
-        },
-        style: {
-          fontSize: "12px",
-          fontWeight: "bold",
-        },
-      },
-      colors: ["#1E3A8A", "#10B981", "#FFCB05", "#1E3A8A"],
-      xaxis: {
-        categories: Object.keys(typeData).map(
-          (type) => transactionTypeLabels[type] || type
-        ),
-        labels: {
-          formatter: function (val) {
-            return formatCurrency(val);
-          },
-        },
-      },
-      yaxis: {
-        labels: {
-          style: {
-            fontSize: "12px",
-          },
-        },
-      },
-      grid: {
-        show: true,
-        strokeDashArray: 3,
-        borderColor: "#e5e7eb",
-      },
-      tooltip: {
-        theme: "light",
+    };
+    const options = {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
         y: {
-          formatter: function (val) {
-            return formatCurrency(val);
-          },
+          beginAtZero: true,
+          ticks: { callback: (value) => `${value / 1000}k` },
         },
       },
-      legend: {
-        show: false,
-      },
+      plugins: { legend: { position: "top" } },
     };
-
-    // Destroy existing chart if it exists
-    if (this.charts.volumeByType) {
-      this.charts.volumeByType.destroy();
-    }
-
-    this.charts.volumeByType = new ApexCharts(chartContainer, options);
-    this.charts.volumeByType.render();
+    renderChart("monthlySummaryChart", "bar", data, options);
   }
 
-  /**
-   * Render payment distribution donut chart
-   */
-  renderPaymentDistributionChart() {
-    const chartContainer = document.getElementById(
-      "payment-distribution-chart"
-    );
-    if (!chartContainer) return;
+  function renderDistributionChart() {
+    const { distribution } = mockApiData.dashboardSummary;
+    const paymentData = { ...distribution.payments, ...distribution.deposits };
 
-    const distributionData = this.calculatePaymentDistribution();
-
+    const data = {
+      labels: Object.keys(paymentData),
+      datasets: [
+        {
+          label: "Distribution",
+          data: Object.values(paymentData),
+          backgroundColor: [
+            "rgba(65, 141, 65, 0.7)",   // Forest green - for Incoming Money
+            "rgba(44, 98, 143, 0.7)",  // Steel blue - for Bank Deposits  
+            "rgba(172, 101, 238, 0.7)",  // Blue violet - for Airtime Bill Payments
+            "rgba(206, 103, 103, 0.7)",   // Indian red - for Payments to Code Holders
+            "rgba(196, 156, 56, 0.7)",  // Dark goldenrod - for Bank Transfers
+            "rgba(144, 61, 113, 0.7)",   // Dark slate blue - for Withdrawals from Agents
+            "rgba(116, 107, 175, 0.7)",  // Slate blue - for Cash Power Bill Payments
+            "rgba(178, 34, 34, 0.7)",   // Fire brick - for Internet and Voice Bundle
+          ],
+          hoverOffset: 4,
+        },
+      ],
+    };
     const options = {
-      series: [distributionData.outgoing, distributionData.incoming],
-      chart: {
-        type: "donut",
-        height: 300,
-        toolbar: {
-          show: false,
-        },
-      },
-      labels: ["Outgoing Payments", "Incoming Money"],
-      colors: ["#FFCB05", "#10B981"],
-      plotOptions: {
-        pie: {
-          donut: {
-            size: "60%",
-            labels: {
-              show: true,
-              total: {
-                show: true,
-                label: "Total",
-                formatter: function (w) {
-                  return w.globals.seriesTotals.reduce((a, b) => a + b, 0);
-                },
-              },
-            },
-          },
-        },
-      },
-      dataLabels: {
-        enabled: true,
-        formatter: function (val, opts) {
-          return Math.round(val) + "%";
-        },
-      },
-      legend: {
-        position: "bottom",
-        fontSize: "14px",
-      },
-      tooltip: {
-        theme: "light",
-        y: {
-          formatter: function (val) {
-            return Math.round(val) + "%";
-          },
-        },
-      },
-      responsive: [
-        {
-          breakpoint: 480,
-          options: {
-            chart: {
-              height: 250,
-            },
-            legend: {
-              position: "bottom",
-            },
-          },
-        },
-      ],
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: { legend: { position: "bottom", labels: { boxWidth: 12 } } },
     };
-
-    if (this.charts.paymentDistribution) {
-      this.charts.paymentDistribution.destroy();
-    }
-
-    this.charts.paymentDistribution = new ApexCharts(chartContainer, options);
-    this.charts.paymentDistribution.render();
+    renderChart("distributionChart", "doughnut", data, options);
   }
 
-  /**
-   * Render monthly transaction summary line chart
-   */
-  renderMonthlySummaryChart() {
-    const chartContainer = document.getElementById("monthly-summary-chart");
-    if (!chartContainer) return;
-
-    const monthlyData = mockAnalytics.monthlyData;
-
-    const options = {
-      series: [
-        {
-          name: "Transactions",
-          type: "column",
-          data: monthlyData.map((d) => d.transactions),
-        },
-        {
-          name: "Volume (RWF)",
-          type: "line",
-          data: monthlyData.map((d) => d.volume),
-        },
-      ],
-      chart: {
-        height: 350,
-        type: "line",
-        toolbar: {
-          show: true,
-          tools: {
-            download: true,
-            selection: false,
-            zoom: false,
-            zoomin: false,
-            zoomout: false,
-            pan: false,
-            reset: false,
-          },
-        },
-      },
-      stroke: {
-        width: [0, 4],
-        curve: "smooth",
-      },
-      colors: ["#1E3A8A", "#10B981"],
-      plotOptions: {
-        bar: {
-          borderRadius: 4,
-          columnWidth: "60%",
-        },
-      },
-      fill: {
-        type: ["solid", "gradient"],
-        gradient: {
-          shade: "light",
-          type: "vertical",
-          shadeIntensity: 0.25,
-          gradientToColors: undefined,
-          inverseColors: false,
-          opacityFrom: 0.85,
-          opacityTo: 0.25,
-          stops: [50, 0, 100],
-        },
-      },
-      dataLabels: {
-        enabled: false,
-      },
-      xaxis: {
-        categories: monthlyData.map((d) => d.month),
-        labels: {
-          style: {
-            fontSize: "12px",
-          },
-        },
-      },
-      yaxis: [
-        {
-          title: {
-            text: "Number of Transactions",
-            style: {
-              fontSize: "12px",
-            },
-          },
-          labels: {
-            formatter: function (val) {
-              return Math.round(val);
-            },
-          },
-        },
-        {
-          opposite: true,
-          title: {
-            text: "Volume (RWF)",
-            style: {
-              fontSize: "12px",
-            },
-          },
-          labels: {
-            formatter: function (val) {
-              return formatCurrency(val);
-            },
-          },
-        },
-      ],
-      grid: {
-        strokeDashArray: 3,
-        borderColor: "#e5e7eb",
-      },
-      legend: {
-        position: "top",
-        horizontalAlign: "right",
-      },
-      tooltip: {
-        theme: "light",
-        shared: true,
-        intersect: false,
-        y: [
-          {
-            formatter: function (val) {
-              return val + " transactions";
-            },
-          },
-          {
-            formatter: function (val) {
-              return formatCurrency(val);
-            },
-          },
-        ],
-      },
-    };
-
-    if (this.charts.monthlySummary) {
-      this.charts.monthlySummary.destroy();
-    }
-
-    this.charts.monthlySummary = new ApexCharts(chartContainer, options);
-    this.charts.monthlySummary.render();
-  }
-
-  /**
-   * Calculate volume by transaction type
-   */
-  calculateVolumeByType() {
-    const typeVolumes = {};
-
-    this.filteredTransactions.forEach((transaction) => {
-      if (!typeVolumes[transaction.type]) {
-        typeVolumes[transaction.type] = 0;
-      }
-      typeVolumes[transaction.type] += transaction.amount;
-    });
-
-    return typeVolumes;
-  }
-
-  /**
-   * Calculate payment distribution
-   */
-  calculatePaymentDistribution() {
-    const total = this.filteredTransactions.length;
-    if (total === 0) return { incoming: 0, outgoing: 0 };
-
-    const incoming = this.filteredTransactions.filter(
-      (t) => t.type === "incoming_money"
-    ).length;
-    const outgoing = total - incoming;
-
-    return {
-      incoming: Math.round((incoming / total) * 100),
-      outgoing: Math.round((outgoing / total) * 100),
-    };
-  }
-
-  /**
-   * Update quick stats sidebar
-   */
-  updateQuickStats() {
-    const analytics = calculateAnalytics(this.filteredTransactions);
-
-    const elements = {
-      "today-transactions": analytics.todayTransactions,
-      "pending-transactions": analytics.pendingTransactions,
-      "failed-transactions": analytics.failedTransactions,
-    };
-
-    Object.entries(elements).forEach(([id, value]) => {
-      const element = document.getElementById(id);
-      if (element) {
-        element.textContent = value;
-      }
-    });
-  }
-
-  /**
-   * Apply filters to transactions
-   */
-  applyFilters() {
-    const filters = this.getFilterValues();
-    this.currentFilters = filters;
-
-    this.filteredTransactions = filterTransactions(this.transactions, filters);
-
-    // Update all dashboard components
-    this.renderSummaryCards();
-    this.renderCharts();
-    this.updateQuickStats();
-
-    // Save filter preferences
-    this.saveUserPreferences();
-
-    showToast(
-      `Showing ${this.filteredTransactions.length} transactions`,
-      "info"
+  // --- INITIALIZATION ---
+  function init() {
+    state.transactions = mockApiData.transactions.sort(
+      (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
     );
+    processDataForDashboard(state.transactions);
+    renderDashboard();
   }
 
-  /**
-   * Reset all filters
-   */
-  resetFilters() {
-    // Clear filter inputs
-    const filterElements = [
-      "transaction-type",
-      "date-from",
-      "date-to",
-      "amount-min",
-      "amount-max",
-    ];
-
-    filterElements.forEach((id) => {
-      const element = document.getElementById(id);
-      if (element) {
-        element.value = "";
-      }
-    });
-
-    this.currentFilters = {};
-    this.filteredTransactions = [...this.transactions];
-
-    // Update dashboard
-    this.renderSummaryCards();
-    this.renderCharts();
-    this.updateQuickStats();
-
-    // Clear saved preferences
-    this.saveUserPreferences();
-
-    showToast("Filters reset successfully", "success");
-  }
-
-  /**
-   * Get current filter values from form
-   */
-  getFilterValues() {
-    return {
-      type: document.getElementById("transaction-type")?.value || "",
-      dateFrom: document.getElementById("date-from")?.value || "",
-      dateTo: document.getElementById("date-to")?.value || "",
-      amountMin:
-        parseFloat(document.getElementById("amount-min")?.value) || null,
-      amountMax:
-        parseFloat(document.getElementById("amount-max")?.value) || null,
-    };
-  }
-
-  /**
-   * Resize charts for responsive design
-   */
-  resizeCharts() {
-    Object.values(this.charts).forEach((chart) => {
-      if (chart && chart.windowResizeHandler) {
-        chart.windowResizeHandler();
-      }
-    });
-  }
-
-  /**
-   * Save user preferences to localStorage
-   */
-  saveUserPreferences() {
-    savePreference("dashboard-filters", this.currentFilters);
-  }
-
-  /**
-   * Load user preferences from localStorage
-   */
-  loadUserPreferences() {
-    const savedFilters = loadPreference("dashboard-filters", {});
-
-    if (Object.keys(savedFilters).length > 0) {
-      // Apply saved filters to form
-      Object.entries(savedFilters).forEach(([key, value]) => {
-        let elementId;
-        switch (key) {
-          case "type":
-            elementId = "transaction-type";
-            break;
-          case "dateFrom":
-            elementId = "date-from";
-            break;
-          case "dateTo":
-            elementId = "date-to";
-            break;
-          case "amountMin":
-            elementId = "amount-min";
-            break;
-          case "amountMax":
-            elementId = "amount-max";
-            break;
-        }
-
-        if (elementId && value) {
-          const element = document.getElementById(elementId);
-          if (element) {
-            element.value = value;
-          }
-        }
-      });
-
-      this.currentFilters = savedFilters;
-    }
-  }
-}
-
-// Initialize dashboard when DOM is loaded
-document.addEventListener("DOMContentLoaded", function () {
-  // Initialize the dashboard
-  window.dashboard = new MoMoDashboard();
-  // Setup mobile menu toggle
-  const mobileMenuButton = document.getElementById("mobile-menu-btn");
-  const mobileMenu = document.getElementById("mobile-menu");
-  if (mobileMenuButton && mobileMenu) {
-    mobileMenuButton.addEventListener("click", function () {
-      const isExpanded = this.getAttribute("aria-expanded") === "true";
-      this.setAttribute("aria-expanded", !isExpanded);
-      mobileMenu.classList.toggle("hidden");
-    });
-  }
-
-  // Add keyboard shortcuts
-  document.addEventListener("keydown", function (e) {
-    // Ctrl/Cmd + R to refresh data
-    if ((e.ctrlKey || e.metaKey) && e.key === "r") {
-      e.preventDefault();
-      window.dashboard.loadData();
-    }
-
-    // Escape to reset filters
-    if (e.key === "Escape") {
-      window.dashboard.resetFilters();
-    }
-  });
+  init();
 });
-
-// Export for potential module use
-if (typeof module !== "undefined" && module.exports) {
-  module.exports = MoMoDashboard;
-}
