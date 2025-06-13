@@ -22,7 +22,6 @@ class DatabaseConnection {
         ...(withDB ? {database: process.env.database || 'momodb'} : {}),
         dateStrings: true,
         connectTimeout: 10000,
-        acquireTimeout: 10000,
       });
 
       this.isConnected = true;
