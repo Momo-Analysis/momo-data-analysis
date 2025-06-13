@@ -1,8 +1,10 @@
+import transaction_types from "../database/transaction_types.js";
+
 export const transactionPatterns = {
   incomingMoney: {
     pattern: /you have received (\d+) (\w{2,3}) from ([\w\s]+\b) .+transaction id: (\d+)/i,
     extract: (matches, readable_date) => ({
-      type: 'INCOMING',
+      type: transaction_types.incoming,
       amount: Number(matches[1]),
       currency: matches[2],
       sender: matches[3],
@@ -13,7 +15,7 @@ export const transactionPatterns = {
   reclaimedMoney: {
     pattern: /your transaction to ([\w\s]+\b) \((\d+)\) with (\d+) (\w{2,3}) has been reversed/i,
     extract: (matches, readable_date) => ({
-      type: 'RECLAIMED',
+      type: transaction_types.reclaimed,
       transactionId: null,
       sender: matches[1],
       senderNumber: matches[2],
@@ -25,7 +27,7 @@ export const transactionPatterns = {
   withdrawnMoney: {
     pattern: /via agent: ([\w\s]+\b) \((\d+)\), withdrawn (\d+) (\w{2,3}) from your.+fee paid: (\d+) .+ financial \w+ id: (\d+)/i,
     extract: (matches, readable_date) => ({
-      type: 'WITHDRAWN',
+      type: transaction_types.withdrawn,
       agent: matches[1],
       agentNumber: matches[2],
       amount: Number(matches[3]),
@@ -38,7 +40,7 @@ export const transactionPatterns = {
   transferMoney: {
     pattern: /\*165\*S\*([\d,]+) (\w{2,3}) transferred to ([\w\s]+\b) \((\d+)\) .+ fee was: (\d+) \w+/i,
     extract: (matches, readable_date) => ({
-      type: 'TRANSFER',
+      type: transaction_types.transfer,
       transactionId: null,
       amount: Number(matches[1].replace(',', '')),
       currency: matches[2],
@@ -51,7 +53,7 @@ export const transactionPatterns = {
   transferMoney_2: {
     pattern: /you have transferred ([\d,]+) (\w{2,3}) to ([\w\s]+\b) \((\d+)\).+financial \w+ id: (\d+)/i,
     extract: (matches, readable_date) => ({
-      type: 'TRANSFER',
+      type: transaction_types.transfer,
       amount: Number(matches[1].replace(',', '')),
       currency: matches[2],
       recipient: matches[3],
@@ -63,7 +65,7 @@ export const transactionPatterns = {
   bankDeposit: {
     pattern: /\*113\*R\*A bank deposit of (\d+) (\w{2,3}) has \w+ added/i,
     extract: (matches, readable_date) => ({
-      type: 'BANK_DEPOSIT',
+      type: transaction_types.bank_deposit,
       transactionId: null,
       amount: Number(matches[1]),
       currency: matches[2],
@@ -73,7 +75,7 @@ export const transactionPatterns = {
   utilityBillPayment: {
     pattern: /\*162\*txid:(\d+)\*S.+payment of (\d+) (\w{2,3}) to (mtn cash power|wasac) with token ([\d-]+) has been.+fee was (\d+)/i,
     extract: (matches, readable_date) => ({
-      type: 'UTILITY_BILL',
+      type: transaction_types.utility_bill,
       transactionId: matches[1],
       amount: Number(matches[2]),
       currency: matches[3],
@@ -86,7 +88,7 @@ export const transactionPatterns = {
   airtimePayment: {
     pattern: /\*162\*txid:(\d+)\*S.+payment of (\d+) (\w{2,3}) to (airtime|bundles and packs) with token/i,
     extract: (matches, readable_date) => ({
-      type: 'AIRTIME_BILL',
+      type: transaction_types.airtime_bill,
       transactionId: matches[1],
       amount: Number(matches[2]),
       currency: matches[3],
@@ -97,7 +99,7 @@ export const transactionPatterns = {
   thirdPartyPayment: {
     pattern: /\*164\*.+transaction of (\d+) (\w{2,3}) by ([\w\s]+\b)\s+on your momo .+ fee was (\d+) .+ financial \w+ id: (\d+).+external \w+ id: ([\w-]+)/i,
     extract: (matches, readable_date) => ({
-      type: 'THIRD_PARTY',
+      type: transaction_types.third_party,
       amount: Number(matches[1]),
       currency: matches[2],
       thirdParty: matches[3],
@@ -110,7 +112,7 @@ export const transactionPatterns = {
   momoPayment: {
     pattern: /txid: (\d+)\. .+ payment of ([\d,]+) (\w{2,3}) to ([\w\s]+\b) \d+ has .+\. fee was (\d+)/i,
     extract: (matches, readable_date) => ({
-      type: 'PAYMENT',
+      type: transaction_types.payment,
       transactionId: matches[1],
       amount: Number(matches[2].replace(',', '')),
       currency: matches[3],
@@ -123,7 +125,7 @@ export const transactionPatterns = {
   momoPayment_2: {
     pattern: /your payment of ([\d,]+) (\w{2,3}) to ([\w\s]+\b) \((\d+)\) has .+\. fee was (\d+) .+ financial \w+ id: (\d+)/i,
     extract: (matches, readable_date) => ({
-      type: 'PAYMENT',
+      type: transaction_types.payment,
       amount: Number(matches[1]),
       currency: matches[2],
       recipient: matches[3],
@@ -136,7 +138,7 @@ export const transactionPatterns = {
   momoPayment_3: {
     pattern: /\*162\*txid:(\d+)\*S.+payment of (\d+) (\w{2,3}) to ([\w\s]+) with token\s+has been.+fee was (\d+)/i,
     extract: (matches, readable_date) => ({
-      type: 'PAYMENT',
+      type: transaction_types.payment,
       transactionId: matches[1],
       amount: Number(matches[2]),
       currency: matches[3],
@@ -147,5 +149,3 @@ export const transactionPatterns = {
     })
   },
 };
-
-// <sms.*"\*165\*S*\*(\d+) (\w{2,3}) transferred to ([\w\s]+\b) \((\d+)\) .+ fee was: (\d+) \w+.*\/>

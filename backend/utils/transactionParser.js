@@ -1,4 +1,3 @@
-// utils/transactionParser.js
 import { transactionPatterns } from './smsPatterns.js';
 
 function parseSMSBody(smsBody, readable_date) {
