@@ -207,10 +207,7 @@ document.addEventListener("DOMContentLoaded", () => {
     renderMonthlySummaryChart();
     renderDistributionChart();
   }
-
   function renderTotalVolumeCards() {
-    const container = document.getElementById("totalVolumeContainer");
-    container.innerHTML = "";
     const transactions = state.transactions.filter(
       (tx) => tx.type !== "Failed to Parse"
     );
@@ -220,33 +217,29 @@ document.addEventListener("DOMContentLoaded", () => {
     const totalVolume = transactions.reduce((sum, tx) => sum + tx.amount, 0);
     const averageAmount =
       totalTransactions > 0 ? totalVolume / totalTransactions : 0;
+    const transactionTypes = [...new Set(transactions.map((tx) => tx.type))]
+      .length;
 
-    const metrics = [
-      {
-        label: "Total Transactions",
-        value: totalTransactions.toLocaleString("en-US"),
-        suffix: "",
-      },
-      {
-        label: "Total Volume",
-        value: totalVolume.toLocaleString("en-US"),
-        suffix: " RWF",
-      },
-      {
-        label: "Average Amount",
-        value: Math.round(averageAmount).toLocaleString("en-US"),
-        suffix: " RWF",
-      },
-    ];
+    // Update card elements
+    const totalTransactionsEl = document.getElementById("total-transactions");
+    const totalVolumeEl = document.getElementById("total-volume");
+    const transactionTypesEl = document.getElementById("transaction-types");
+    const avgAmountEl = document.getElementById("avg-amount");
 
-    metrics.forEach(({ label, value, suffix }) => {
-      const card = `
-                <div class="bg-white p-6 rounded-lg shadow-sm">
-                    <h4 class="text-sm font-medium text-gray-500 truncate">${label}</h4>
-                    <p class="mt-1 text-3xl font-semibold text-gray-900">${value}${suffix}</p>
-                </div>`;
-      container.innerHTML += card;
-    });
+    if (totalTransactionsEl) {
+      totalTransactionsEl.textContent =
+        totalTransactions.toLocaleString("en-US");
+    }
+    if (totalVolumeEl) {
+      totalVolumeEl.textContent = totalVolume.toLocaleString("en-US");
+    }
+    if (transactionTypesEl) {
+      transactionTypesEl.textContent = transactionTypes.toString();
+    }
+    if (avgAmountEl) {
+      avgAmountEl.textContent =
+        Math.round(averageAmount).toLocaleString("en-US");
+    }
   }
 
   function renderChart(canvasId, type, data, options) {
