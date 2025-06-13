@@ -302,7 +302,7 @@ curl "http://localhost:3000/api/transactions/TXN123456"
 
 ## Rate Limiting
 
-Currently, no rate limiting is implemented. In production, consider implementing rate limiting to prevent abuse.
+Currently, no rate limiting is implemented. In production, please consider implementing rate limiting to prevent abuse.
 
 ## CORS
 
@@ -313,4 +313,4 @@ CORS is enabled for all origins in development. In production, configure CORS to
 - Input validation is implemented for query parameters
 - SQL injection protection through parameterized queries
 - Error messages are sanitized in production mode
-- Consider implementing authentication and authorization for production use
+- We will consider implementing authentication and authorization for production use

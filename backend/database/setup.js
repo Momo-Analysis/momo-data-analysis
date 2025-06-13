@@ -21,7 +21,7 @@ const createTables = async (connection) => {
   }
 };
 
-const connection = await DBInstance.connect();
+const connection = await DBInstance.connect(false);
 createTables(connection)
   .then(() => {
     console.log("Database setup complete.");

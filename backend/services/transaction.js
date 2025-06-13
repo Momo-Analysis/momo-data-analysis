@@ -1,28 +1,15 @@
 import dbInstance from '../database/connection.js';
-import transactionTypes from '../database/transaction_types.js';
+import transactionTypes from '../utils/transaction_types.js';
 
-/**
- * Service class to handle transaction-related database operations
- */
-class TransactionService {
-  
-  /**
-   * Get all available transaction types
-   */
+class Transaction {
   static getTransactionTypes() {
     return Object.values(transactionTypes);
   }
 
-  /**
-   * Get all available table names
-   */
   static getTableNames() {
     return Object.keys(transactionTypes);
   }
 
-  /**
-   * Build WHERE clause for filtering
-   */
   static buildWhereClause(filters) {
     const conditions = [];
     const params = [];
@@ -67,9 +54,6 @@ class TransactionService {
     return { whereClause, params };
   }
 
-  /**
-   * Get transactions from a specific table with filters and pagination
-   */
   static async getTransactionsFromTable(tableName, filters = {}, page = 1, limit = 10) {
     try {
       const connection = await dbInstance.getConnection();
@@ -104,9 +88,6 @@ class TransactionService {
     }
   }
 
-  /**
-   * Get transactions from all tables with filters and pagination
-   */
   static async getAllTransactions(filters = {}, page = 1, limit = 10) {
     try {
       const connection = await dbInstance.getConnection();
@@ -173,9 +154,6 @@ class TransactionService {
     }
   }
 
-  /**
-   * Get transaction statistics
-   */
   static async getTransactionStats(filters = {}) {
     try {
       const connection = await dbInstance.getConnection();
@@ -228,4 +206,4 @@ class TransactionService {
   }
 }
 
-export default TransactionService;
+export default Transaction;

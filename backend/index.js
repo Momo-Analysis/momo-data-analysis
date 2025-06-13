@@ -1,7 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
-import transactionRoutes from './routes/transactionsSimple.js';
+import transactionRoutes from './routes/transactions.js';
 
 // Load environment variables
 dotenv.config();
@@ -47,6 +47,14 @@ app.get('/', (req, res) => {
   });
 });
 
+// 404 handler
+app.use('*', (req, res) => {
+  res.status(404).json({
+    success: false,
+    message: 'Route not found'
+  });
+});
+
 // Error handling middleware
 app.use((err, req, res, next) => {
   console.error('Unhandled error:', err);
@@ -54,14 +62,6 @@ app.use((err, req, res, next) => {
     success: false,
     message: 'Internal server error',
     error: process.env.NODE_ENV === 'development' ? err.message : undefined
-  });
-});
-
-// 404 handler
-app.use('*', (req, res) => {
-  res.status(404).json({
-    success: false,
-    message: 'Route not found'
   });
 });
 
@@ -76,5 +76,3 @@ app.listen(PORT, () => {
   console.log(`   - GET  http://localhost:${PORT}/api/transactions/types`);
   console.log(`   - GET  http://localhost:${PORT}/api/transactions/:id`);
 });
-
-export default app;

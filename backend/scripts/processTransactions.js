@@ -1,6 +1,6 @@
 import {parseXMLFile} from '../utils/xmlParser.js';
 import {processTransactions} from '../utils/transactionParser.js';
-import transaction_types from '../database/transaction_types.js';
+import transactionTypes from '../utils/transaction_types.js';
 import {
   createAirtimeBillInsertQuery,
   createBankDepositInsertQuery,
@@ -18,31 +18,31 @@ async function insertTransaction(connection, transaction) {
     let queryData;
 
     switch (transaction.type) {
-      case transaction_types.incoming:
+      case transactionTypes.incoming:
         queryData = createIncomingInsertQuery(transaction);
         break;
-      case transaction_types.reclaimed:
+      case transactionTypes.reclaimed:
         queryData = createReclaimedInsertQuery(transaction);
         break;
-      case transaction_types.payment:
+      case transactionTypes.payment:
         queryData = createPaymentInsertQuery(transaction);
         break;
-      case transaction_types.bank_deposit:
+      case transactionTypes.bank_deposit:
         queryData = createBankDepositInsertQuery(transaction);
         break;
-      case transaction_types.transfer:
+      case transactionTypes.transfer:
         queryData = createTransferInsertQuery(transaction);
         break;
-      case transaction_types.withdrawn:
+      case transactionTypes.withdrawn:
         queryData = createWithdrawnInsertQuery(transaction);
         break;
-      case transaction_types.airtime_bill:
+      case transactionTypes.airtime_bill:
         queryData = createAirtimeBillInsertQuery(transaction);
         break;
-      case transaction_types.utility_bill:
+      case transactionTypes.utility_bill:
         queryData = createUtilityBillInsertQuery(transaction);
         break;
-      case transaction_types.third_party:
+      case transactionTypes.third_party:
         queryData = createThirdPartyInsertQuery(transaction);
         break;
       default:

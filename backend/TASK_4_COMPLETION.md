@@ -46,7 +46,7 @@ Successfully implemented a comprehensive Express.js API endpoint for fetching Mo
 - **Error Resilience**: Continues operation even if individual tables fail
 
 ### Service Layer
-- **TransactionService**: Centralized business logic
+- **Transaction**: Centralized business logic
 - **Query Building**: Dynamic WHERE clause construction
 - **Statistics**: Aggregated transaction statistics
 
@@ -79,23 +79,6 @@ GET /api/transactions/types      # Available transaction types
 GET /api/transactions/:id        # Specific transaction by ID
 GET /health                      # Health check
 GET /                           # API information
-```
-
-## 🧪 Testing
-
-### Test Coverage
-- ✅ Basic pagination functionality
-- ✅ Type filtering with valid and invalid types
-- ✅ Date filtering (exact and range)
-- ✅ Amount range filtering
-- ✅ Combined filter scenarios
-- ✅ Error handling for invalid inputs
-- ✅ Edge cases (large limits, non-existent records)
-
-### Test Script
-Run the comprehensive test suite:
-```bash
-./tests/apiTestScript.sh
 ```
 
 ## 🔧 Example Usage

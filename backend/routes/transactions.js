@@ -1,101 +1,24 @@
 import express from 'express';
-import TransactionService from '../services/transactionService.js';
+import TransactionService from '../services/transaction.js';
 import dbInstance from '../database/connection.js';
 
 const router = express.Router();
 
-/**
- * GET /api/transactions
- * Fetch transactions with pagination and filtering
- * 
- * Query Parameters:
- * - page: Page number (default: 1)
- * - limit: Number of records per page (default: 10, max: 100)
- * - type: Transaction type filter
- * - date: Exact date filter (YYYY-MM-DD)
- * - startDate: Start date for range filter (YYYY-MM-DD)
- * - endDate: End date for range filter (YYYY-MM-DD)
- * - minAmount: Minimum amount filter
- * - maxAmount: Maximum amount filter
- */
+// GET /api/transactions - Main endpoint with pagination and filtering
 router.get('/', async (req, res) => {
   try {
-    // Extract and validate query parameters
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
     
     const filters = {};
     
-    // Type filter
-    if (req.query.type) {
-      filters.type = req.query.type;
-    }
-    
-    // Date filters
-    if (req.query.date) {
-      // Validate date format (YYYY-MM-DD)
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (dateRegex.test(req.query.date)) {
-        filters.date = req.query.date;
-      } else {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid date format. Use YYYY-MM-DD'
-        });
-      }
-    }
-    
-    // Date range filters
-    if (req.query.startDate) {
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (dateRegex.test(req.query.startDate)) {
-        filters.startDate = req.query.startDate;
-      } else {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid startDate format. Use YYYY-MM-DD'
-        });
-      }
-    }
-    
-    if (req.query.endDate) {
-      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
-      if (dateRegex.test(req.query.endDate)) {
-        filters.endDate = req.query.endDate;
-      } else {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid endDate format. Use YYYY-MM-DD'
-        });
-      }
-    }
-    
-    // Amount filters
-    if (req.query.minAmount !== undefined) {
-      const minAmount = parseFloat(req.query.minAmount);
-      if (!isNaN(minAmount)) {
-        filters.minAmount = minAmount;
-      } else {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid minAmount. Must be a number'
-        });
-      }
-    }
-    
-    if (req.query.maxAmount !== undefined) {
-      const maxAmount = parseFloat(req.query.maxAmount);
-      if (!isNaN(maxAmount)) {
-        filters.maxAmount = maxAmount;
-      } else {
-        return res.status(400).json({
-          success: false,
-          message: 'Invalid maxAmount. Must be a number'
-        });
-      }
-    }
+    if (req.query.type) filters.type = req.query.type;
+    if (req.query.date) filters.date = req.query.date;
+    if (req.query.startDate) filters.startDate = req.query.startDate;
+    if (req.query.endDate) filters.endDate = req.query.endDate;
+    if (req.query.minAmount !== undefined) filters.minAmount = parseFloat(req.query.minAmount);
+    if (req.query.maxAmount !== undefined) filters.maxAmount = parseFloat(req.query.maxAmount);
 
-    // Fetch transactions
     const result = await TransactionService.getAllTransactions(filters, page, limit);
     
     res.json({
@@ -123,15 +46,11 @@ router.get('/', async (req, res) => {
   }
 });
 
-/**
- * GET /api/transactions/stats
- * Get transaction statistics with optional filtering
- */
+// GET /api/transactions/stats - Transaction statistics
 router.get('/stats', async (req, res) => {
   try {
     const filters = {};
     
-    // Apply same filters as main endpoint
     if (req.query.type) filters.type = req.query.type;
     if (req.query.date) filters.date = req.query.date;
     if (req.query.startDate) filters.startDate = req.query.startDate;
@@ -158,10 +77,7 @@ router.get('/stats', async (req, res) => {
   }
 });
 
-/**
- * GET /api/transactions/types
- * Get available transaction types
- */
+// GET /api/transactions/types - Available transaction types
 router.get('/types', (req, res) => {
   try {
     const types = TransactionService.getTransactionTypes();
@@ -182,10 +98,7 @@ router.get('/types', (req, res) => {
   }
 });
 
-/**
- * GET /api/transactions/:id
- * Get a specific transaction by ID across all tables
- */
+// GET /api/transactions/:id - Get specific transaction by ID
 router.get('/:id', async (req, res) => {
   try {
     const connection = await dbInstance.getConnection();
