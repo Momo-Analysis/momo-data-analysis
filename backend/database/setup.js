@@ -3,7 +3,7 @@
 // Write basic functions to connect to the MySQL database and execute raw queries.
 
 import connection from "./connection.js";
-import tableQueries from "./tableQueries.js";
+import tableQueries from "./tableCreationQueries.js";
 import dotenv from "dotenv";
 dotenv.config();
 

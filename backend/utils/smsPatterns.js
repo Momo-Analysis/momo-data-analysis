@@ -41,7 +41,7 @@ export const transactionPatterns = {
       type: 'TRANSFER',
       transactionId: null,
       amount: Number(matches[1].replace(',', '')),
-      currency: Number(matches[2]),
+      currency: matches[2],
       recipient: matches[3],
       recipientNumber: matches[4],
       fee: Number(matches[5]),
@@ -49,11 +49,11 @@ export const transactionPatterns = {
     })
   },
   transferMoney_2: {
-    patterns: /you have transferred ([\d,]+) (\w{2,3}) to ([\w\s]+\b) \((\d+)\).+financial \w+ id: (\d+)/i,
+    pattern: /you have transferred ([\d,]+) (\w{2,3}) to ([\w\s]+\b) \((\d+)\).+financial \w+ id: (\d+)/i,
     extract: (matches, readable_date) => ({
       type: 'TRANSFER',
       amount: Number(matches[1].replace(',', '')),
-      currency: Number(matches[2]),
+      currency: matches[2],
       recipient: matches[3],
       recipientNumber: matches[4],
       transactionId: matches[5],
@@ -71,7 +71,7 @@ export const transactionPatterns = {
     })
   },
   utilityBillPayment: {
-    pattern: /\*162\*txid:(\d+)\*S.+payment of (\d+) (\w{2,3}) to (mtn cash power|wasac) with token ([\d-]+) has been/i,
+    pattern: /\*162\*txid:(\d+)\*S.+payment of (\d+) (\w{2,3}) to (mtn cash power|wasac) with token ([\d-]+) has been.+fee was (\d+)/i,
     extract: (matches, readable_date) => ({
       type: 'UTILITY_BILL',
       transactionId: matches[1],
@@ -101,7 +101,7 @@ export const transactionPatterns = {
       amount: Number(matches[1]),
       currency: matches[2],
       thirdParty: matches[3],
-      fee: matches[4],
+      fee: Number(matches[4]),
       transactionId: matches[5],
       externalTransactionId: matches[6],
       timestamp: readable_date
@@ -113,8 +113,9 @@ export const transactionPatterns = {
       type: 'PAYMENT',
       transactionId: matches[1],
       amount: Number(matches[2].replace(',', '')),
-      currency: Number(matches[3]),
+      currency: matches[3],
       recipient: matches[4],
+      recipientNumber: null,
       fee: Number(matches[5]),
       timestamp: readable_date
     })
@@ -124,7 +125,7 @@ export const transactionPatterns = {
     extract: (matches, readable_date) => ({
       type: 'PAYMENT',
       amount: Number(matches[1]),
-      currency: Number(matches[2]),
+      currency: matches[2],
       recipient: matches[3],
       recipientNumber: matches[4], // Optional
       fee: Number(matches[5]),
@@ -140,7 +141,8 @@ export const transactionPatterns = {
       amount: Number(matches[2]),
       currency: matches[3],
       recipient: matches[4],
-      fee: matches[5],
+      recipientNumber: null,
+      fee: Number(matches[5]),
       timestamp: readable_date
     })
   },
