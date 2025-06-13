@@ -155,15 +155,19 @@ document.addEventListener("DOMContentLoaded", () => {
     state.pagination.totalPages = Math.ceil(filtered.length / limit);
 
     const paginated = filtered.slice(start, end);
-
     if (paginated.length === 0) {
-      list.innerHTML = `<tr><td colspan="4" class="text-center py-10 text-gray-500">No transactions found for the selected filters.</td></tr>`;
+      list.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">No transactions found for the selected filters.</td></tr>`;
     } else {
       paginated.forEach((tx) => {
         const row = document.createElement("tr");
         row.className = "hover:bg-gray-50 cursor-pointer";
         row.dataset.transactionId = tx.id;
         row.innerHTML = `
+                    <td class="px-6 py-4 whitespace-nowrap">
+                        <div class="text-sm font-medium text-gray-900">${
+                          tx.id
+                        }</div>
+                    </td>
                     <td class="px-6 py-4 whitespace-nowrap">
                         <div class="text-sm font-medium text-gray-900">${
                           tx.type
