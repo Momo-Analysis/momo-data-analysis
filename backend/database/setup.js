@@ -1,4 +1,4 @@
-import connection from "./connection.js";
+import DBInstance from "./connection.js";
 import tableQueries from "./tableCreationQueries.js";
 import dotenv from "dotenv";
 import {storeSMSData} from "../scripts/processTransactions.js";
@@ -21,6 +21,7 @@ const createTables = async (connection) => {
   }
 };
 
+const connection = await DBInstance.connect(false);
 createTables(connection)
   .then(() => {
     console.log("Database setup complete.");
