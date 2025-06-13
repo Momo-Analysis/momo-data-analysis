@@ -140,6 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
     transactions: [],
     filters: { type: "All Types", startDate: "", endDate: "", search: "" },
     pagination: { currentPage: 1, limit: 7, totalPages: 1 },
+    sorting: { field: null, direction: "asc" },
   };
 
   // --- UI RENDERING ---
@@ -154,7 +155,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const filtered = getFilteredTransactions();
     state.pagination.totalPages = Math.ceil(filtered.length / limit);
 
-    const paginated = filtered.slice(start, end);
+    const sorted = sortTransactions(
+      filtered,
+      state.sorting.field,
+      state.sorting.direction
+    );
+
+    const paginated = sorted.slice(start, end);
     if (paginated.length === 0) {
       list.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">No transactions found for the selected filters.</td></tr>`;
     } else {
@@ -191,6 +198,7 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     }
     renderPaginationControls();
+    updateSortIcons();
   }
 
   function renderPaginationControls() {
@@ -286,6 +294,97 @@ document.addEventListener("DOMContentLoaded", () => {
     state.pagination.currentPage = 1;
     renderTransactionList();
   }
+  function sortTransactions(transactions, field, direction) {
+    if (!field) {
+      return transactions; // Return unsorted if no field is specified
+    }
+
+    return [...transactions].sort((a, b) => {
+      let aValue, bValue;
+
+      switch (field) {
+        case "id":
+          aValue = a.id;
+          bValue = b.id;
+          break;
+        case "type":
+          aValue = a.type;
+          bValue = b.type;
+          break;
+        case "amount":
+          aValue = a.amount;
+          bValue = b.amount;
+          break;
+        case "timestamp":
+          aValue = new Date(a.timestamp);
+          bValue = new Date(b.timestamp);
+          break;
+        default:
+          return 0;
+      }
+
+      if (direction === "asc") {
+        if (aValue < bValue) return -1;
+        if (aValue > bValue) return 1;
+        return 0;
+      } else {
+        if (aValue > bValue) return -1;
+        if (aValue < bValue) return 1;
+        return 0;
+      }
+    });
+  }
+
+  function handleSort(field) {
+    // Toggle direction if clicking the same field, otherwise set to asc
+    if (state.sorting.field === field) {
+      state.sorting.direction =
+        state.sorting.direction === "asc" ? "desc" : "asc";
+    } else {
+      state.sorting.field = field;
+      state.sorting.direction = "asc";
+    }
+
+    // Reset pagination to first page
+    state.pagination.currentPage = 1;
+    renderTransactionList();
+  }
+
+  function updateSortIcons() {
+    // Reset all sort icons
+    const sortHeaders = document.querySelectorAll("[data-sort]");
+    sortHeaders.forEach((header) => {
+      const icon = header.querySelector("svg");
+      icon.classList.remove("text-blue-600");
+      icon.classList.add("text-gray-400");
+    });
+
+    // Update active sort icon
+    if (state.sorting.field) {
+      const activeHeader = document.querySelector(
+        `[data-sort="${state.sorting.field}"]`
+      );
+      if (activeHeader) {
+        const icon = activeHeader.querySelector("svg");
+        icon.classList.remove("text-gray-400");
+        icon.classList.add("text-blue-600");
+
+        // Update icon direction
+        const path = icon.querySelector("path");
+        if (state.sorting.direction === "desc") {
+          path.setAttribute(
+            "d",
+            "M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+          );
+        } else {
+          path.setAttribute(
+            "d",
+            "M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+          );
+        }
+      }
+    }
+  }
 
   // Event Listeners
   // Dynamic filtering - no apply button needed
@@ -334,6 +433,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   document.getElementById("modal-close").addEventListener("click", () => {
     document.getElementById("modal-container").classList.add("hidden");
+  });
+
+  // Sort event listeners
+  document.addEventListener("click", (e) => {
+    const sortHeader = e.target.closest("[data-sort]");
+    if (sortHeader) {
+      const field = sortHeader.getAttribute("data-sort");
+      handleSort(field);
+    }
   });
 
   // --- INITIALIZATION ---
