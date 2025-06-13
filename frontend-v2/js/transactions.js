@@ -136,10 +136,9 @@ document.addEventListener("DOMContentLoaded", () => {
       },
     ],
   };
-
   const state = {
     transactions: [],
-    filters: { type: "All Types", startDate: "", endDate: "" },
+    filters: { type: "All Types", startDate: "", endDate: "", search: "" },
     pagination: { currentPage: 1, limit: 7, totalPages: 1 },
   };
 
@@ -253,31 +252,51 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- LOGIC & EVENT HANDLERS ---
-
   function getFilteredTransactions() {
-    const { type, startDate, endDate } = state.filters;
+    const { type, startDate, endDate, search } = state.filters;
     return state.transactions.filter((tx) => {
       const txDate = new Date(tx.timestamp);
       const isTypeMatch = type === "All Types" || tx.type === type;
       const isStartDateMatch = !startDate || txDate >= new Date(startDate);
       const isEndDateMatch = !endDate || txDate <= new Date(endDate);
-      return isTypeMatch && isStartDateMatch && isEndDateMatch;
+
+      // Search functionality - search in type, amount, and details
+      const isSearchMatch =
+        !search ||
+        tx.type.toLowerCase().includes(search.toLowerCase()) ||
+        tx.id.toString().includes(search) ||
+        tx.amount.toString().includes(search) ||
+        Object.values(tx.details).some((detail) =>
+          detail.toString().toLowerCase().includes(search.toLowerCase())
+        );
+
+      return isTypeMatch && isStartDateMatch && isEndDateMatch && isSearchMatch;
     });
   }
-
-  function handleFilterApply() {
+  function handleFilterChange() {
     state.filters.type = document.getElementById("filter-type").value;
     state.filters.startDate =
       document.getElementById("filter-start-date").value;
     state.filters.endDate = document.getElementById("filter-end-date").value;
+    state.filters.search = document.getElementById("search-input").value;
     state.pagination.currentPage = 1;
     renderTransactionList();
   }
 
   // Event Listeners
+  // Dynamic filtering - no apply button needed
   document
-    .getElementById("filter-apply")
-    .addEventListener("click", handleFilterApply);
+    .getElementById("filter-type")
+    .addEventListener("change", handleFilterChange);
+  document
+    .getElementById("filter-start-date")
+    .addEventListener("change", handleFilterChange);
+  document
+    .getElementById("filter-end-date")
+    .addEventListener("change", handleFilterChange);
+  document
+    .getElementById("search-input")
+    .addEventListener("input", handleFilterChange);
 
   document
     .getElementById("pagination-controls")
