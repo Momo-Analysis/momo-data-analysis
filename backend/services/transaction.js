@@ -72,7 +72,7 @@ class Transaction {
         ORDER BY timestamp DESC 
         LIMIT ? OFFSET ?
       `;
-      const [rows] = await connection.execute(dataQuery, [...params, limit, offset]);
+      const [rows] = await connection.execute(dataQuery, [...params, limit.toString(), offset.toString()]);
 
       return {
         data: rows,
