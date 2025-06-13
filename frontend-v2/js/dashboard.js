@@ -265,8 +265,8 @@ document.addEventListener("DOMContentLoaded", () => {
         {
           label: "Expenditure",
           data: monthlySummary.map((d) => d.expenditure),
-          backgroundColor: "rgba(255, 203, 5, 0.7)",
-          borderColor: "#ffcb05",
+          backgroundColor: "rgba(178, 34, 34, 0.7)",
+          borderColor: "rgba(178, 34, 34, 0.7)",
           borderWidth: 1,
         },
       ],
