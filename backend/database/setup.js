@@ -1,10 +1,7 @@
-// Design the transactions table in MySQL with the specified fields: id (INT, AUTO_INCREMENT, PRIMARY KEY), type (VARCHAR), amount (FLOAT), timestamp (DATETIME), and details (JSON).
-// Set up the node-mysql2 library and implement the database connection logic in the backend.
-// Write basic functions to connect to the MySQL database and execute raw queries.
-
 import connection from "./connection.js";
-import tableQueries from "./tableQueries.js";
+import tableQueries from "./tableCreationQueries.js";
 import dotenv from "dotenv";
+import {storeSMSData} from "../scripts/processTransactions.js";
 dotenv.config();
 
 const createDatabaseQuery = `CREATE DATABASE IF NOT EXISTS ${process.env.database};`;
@@ -27,6 +24,10 @@ const createTables = async (connection) => {
 createTables(connection)
   .then(() => {
     console.log("Database setup complete.");
+    return storeSMSData(connection);
+  })
+  .then(() => {
+    console.log("SMS data inserted successfully.");
     connection.end();
   })
   .catch((error) => {
