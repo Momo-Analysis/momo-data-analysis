@@ -258,15 +258,15 @@ document.addEventListener("DOMContentLoaded", () => {
         {
           label: "Income",
           data: monthlySummary.map((d) => d.income),
-          backgroundColor: "rgba(54, 162, 235, 0.6)",
-          borderColor: "rgba(54, 162, 235, 1)",
+          backgroundColor: "rgba(0, 79, 113, 0.7)",
+          borderColor: "#004f71",
           borderWidth: 1,
         },
         {
           label: "Expenditure",
           data: monthlySummary.map((d) => d.expenditure),
-          backgroundColor: "rgba(255, 99, 132, 0.6)",
-          borderColor: "rgba(255, 99, 132, 1)",
+          backgroundColor: "rgba(255, 203, 5, 0.7)",
+          borderColor: "#ffcb05",
           borderWidth: 1,
         },
       ],
@@ -296,12 +296,14 @@ document.addEventListener("DOMContentLoaded", () => {
           label: "Distribution",
           data: Object.values(paymentData),
           backgroundColor: [
-            "rgba(255, 99, 132, 0.7)",
-            "rgba(54, 162, 235, 0.7)",
-            "rgba(255, 206, 86, 0.7)",
-            "rgba(75, 192, 192, 0.7)",
-            "rgba(153, 102, 255, 0.7)",
-            "rgba(255, 159, 64, 0.7)",
+            "rgba(65, 141, 65, 0.7)",   // Forest green - for Incoming Money
+            "rgba(44, 98, 143, 0.7)",  // Steel blue - for Bank Deposits  
+            "rgba(172, 101, 238, 0.7)",  // Blue violet - for Airtime Bill Payments
+            "rgba(206, 103, 103, 0.7)",   // Indian red - for Payments to Code Holders
+            "rgba(196, 156, 56, 0.7)",  // Dark goldenrod - for Bank Transfers
+            "rgba(144, 61, 113, 0.7)",   // Dark slate blue - for Withdrawals from Agents
+            "rgba(116, 107, 175, 0.7)",  // Slate blue - for Cash Power Bill Payments
+            "rgba(178, 34, 34, 0.7)",   // Fire brick - for Internet and Voice Bundle
           ],
           hoverOffset: 4,
         },
