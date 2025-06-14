@@ -249,7 +249,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function renderFilterOptions() {
     const select = document.getElementById("filter-type");
-    select.innerHTML = '<option>All Types</option>';
+    select.innerHTML = '<option value="All Types">all types</option>';
     const types = await fetchTransactionTypes();
     types.forEach((type) => {
       const option = document.createElement("option");
