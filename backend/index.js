@@ -33,19 +33,7 @@ app.get('/api/health', (req, res) => {
 });
 
 // Root endpoint
-app.get('/', (req, res) => {
-  res.json({
-    success: true,
-    message: 'Welcome to MoMo Data Analysis API',
-    version: '1.0.0',
-    endpoints: {
-      transactions: '/api/transactions',
-      transactionStats: '/api/transactions/stats',
-      transactionTypes: '/api/transactions/types',
-      health: '/health'
-    }
-  });
-});
+app.use('/', express.static('../frontend'));
 
 // 404 handler
 app.use('*', (req, res) => {
