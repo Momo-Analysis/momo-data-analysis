@@ -105,7 +105,7 @@ class Transaction {
         const tableKey = Object.keys(transactionTypes).find(
           key => transactionTypes[key] === filters.type.toUpperCase()
         );
-        
+
         if (tableKey) {
           return await this.getTransactionsFromTable(tableKey, filters, page, limit);
         } else {
@@ -123,12 +123,12 @@ class Transaction {
       // Query all tables and combine results
       for (const tableName of tableNames) {
         const { whereClause, params } = this.buildWhereClause(filters);
-        
+
         const query = `
           SELECT *, '${transactionTypes[tableName]}' as transaction_type FROM ${tableName} 
           ${whereClause}
         `;
-        
+
         try {
           const [rows] = await connection.execute(query, params);
           allResults.push(...rows);
@@ -168,12 +168,29 @@ class Transaction {
         totalTransactions: 0,
         totalAmount: 0,
         transactionsByType: {},
-        averageAmount: 0
+        averageAmount: 0,
+        // Add chart data fields
+        chartData: {
+          totalVolumeByType: [],
+          monthlySummary: Array(12).fill(0).map((_, i) => ({
+            month: new Date(0, i).toLocaleString('default', { month: 'short' }),
+            income: 0,
+            expenditure: 0
+          })),
+          distribution: { payments: {}, deposits: {} }
+        }
       };
+
+      // Define income and payment types
+      const incomeTypes = ['INCOMING', 'BANK_DEPOSIT'];
+      const paymentTypes = [
+        'PAYMENT', 'AIRTIME_BILL', 'UTILITY_BILL', 'WITHDRAWN', 'TRANSFER', 'THIRD_PARTY'
+      ];
 
       for (const tableName of tableNames) {
         const { whereClause, params } = this.buildWhereClause(filters);
-        
+
+        // Basic stats query
         const query = `
           SELECT 
             COUNT(*) as count,
@@ -184,10 +201,22 @@ class Transaction {
           ${whereClause}
           GROUP BY type
         `;
-        
+
+        // Monthly data query
+        const monthlyQuery = `
+          SELECT 
+            MONTH(timestamp) as month,
+            type,
+            SUM(amount) as total_amount
+          FROM ${tableName}
+          ${whereClause}
+          GROUP BY MONTH(timestamp), type
+        `;
+
         try {
+          // Get basic stats
           const [rows] = await connection.execute(query, params);
-          
+
           for (const row of rows) {
             stats.totalTransactions += row.count;
             stats.totalAmount += row.total_amount || 0;
@@ -196,6 +225,36 @@ class Transaction {
               totalAmount: row.total_amount || 0,
               averageAmount: row.avg_amount || 0
             };
+
+            // Add to totalVolumeByType for chart
+            if (row.type !== 'FAILED' && row.total_amount) {
+              stats.chartData.totalVolumeByType.push({
+                type: row.type,
+                totalAmount: row.total_amount || 0
+              });
+
+              // Add to distribution
+              if (incomeTypes.includes(row.type)) {
+                stats.chartData.distribution.deposits[row.type] = row.total_amount || 0;
+              } else if (paymentTypes.includes(row.type)) {
+                stats.chartData.distribution.payments[row.type] = row.total_amount || 0;
+              }
+            }
+          }
+
+          // Get monthly data
+          const [monthlyRows] = await connection.execute(monthlyQuery, params);
+
+          for (const row of monthlyRows) {
+            if (row.month && row.month >= 1 && row.month <= 12) {
+              const monthIndex = row.month - 1; // Convert 1-12 to 0-11
+
+              if (incomeTypes.includes(row.type)) {
+                stats.chartData.monthlySummary[monthIndex].income += row.total_amount || 0;
+              } else if (paymentTypes.includes(row.type)) {
+                stats.chartData.monthlySummary[monthIndex].expenditure += row.total_amount || 0;
+              }
+            }
           }
         } catch (error) {
           console.error(`Error getting stats from table ${tableName}:`, error);

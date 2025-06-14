@@ -44,29 +44,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  async function fetchTransactions(filters = {}) {
-    try {
-      const queryParams = new URLSearchParams({
-        page: 1,
-        limit: 1000, // Fetch a large number of transactions for charts
-      });
-      if (filters.type && filters.type !== "All Types") queryParams.append("type", filters.type);
-      if (filters.startDate) queryParams.append("startDate", filters.startDate);
-      if (filters.endDate) queryParams.append("endDate", filters.endDate);
-
-      const response = await fetch(`${API_BASE_URL}/transactions?${queryParams.toString()}`);
-      const result = await response.json();
-      if (!result.success) {
-        throw new Error(result.message || "Failed to fetch transactions");
-      }
-      return result.data;
-    } catch (error) {
-      console.error("Error fetching transactions:", error);
-      alert("Failed to load transactions. Please try again later.");
-      return [];
-    }
-  }
-
   async function fetchTransactionTypes() {
     try {
       const response = await fetch(`${API_BASE_URL}/transactions/types`);
@@ -81,56 +58,6 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  // --- DATA PROCESSING ---
-  function processDataForDashboard(transactions) {
-    const summary = {
-      totalVolumeByType: {},
-      monthlySummary: Array(12)
-        .fill(0)
-        .map((_, i) => ({
-          month: new Date(0, i).toLocaleString("default", { month: "short" }),
-          income: 0,
-          expenditure: 0,
-        })),
-      distribution: { payments: {}, deposits: {} },
-    };
-
-    const incomeTypes = ["INCOMING", "BANK_DEPOSIT"];
-    const paymentTypes = [
-      "PAYMENT",
-      "AIRTIME_BILL",
-      "UTILITY_BILL",
-      "WITHDRAWN",
-      "TRANSFER",
-      "THIRD_PARTY",
-    ];
-
-    transactions.forEach((tx) => {
-      if (tx.type !== "FAILED") {
-        summary.totalVolumeByType[tx.type] =
-          (summary.totalVolumeByType[tx.type] || 0) + tx.amount;
-      }
-
-      const monthIndex = new Date(tx.timestamp).getMonth();
-
-      if (incomeTypes.includes(tx.type)) {
-        summary.monthlySummary[monthIndex].income += tx.amount;
-        summary.distribution.deposits[tx.type] =
-          (summary.distribution.deposits[tx.type] || 0) + tx.amount;
-      } else if (paymentTypes.includes(tx.type)) {
-        summary.monthlySummary[monthIndex].expenditure += tx.amount;
-        summary.distribution.payments[tx.type] =
-          (summary.distribution.payments[tx.type] || 0) + tx.amount;
-      }
-    });
-
-    state.dashboardSummary.totalVolumeByType = Object.entries(summary.totalVolumeByType).map(
-      ([type, totalAmount]) => ({ type, totalAmount })
-    );
-    state.dashboardSummary.monthlySummary = summary.monthlySummary;
-    state.dashboardSummary.distribution = summary.distribution;
-  }
-
   // --- UI RENDERING ---
   async function renderDashboard() {
     const isApiHealthy = await checkApiHealth();
@@ -139,10 +66,14 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const stats = await fetchTransactionStats(state.filters);
-    const transactions = await fetchTransactions(state.filters);
-    state.transactions = transactions;
 
-    processDataForDashboard(transactions);
+    // Use chart data from stats endpoint instead of fetching all transactions
+    if (stats.chartData) {
+      state.dashboardSummary.totalVolumeByType = stats.chartData.totalVolumeByType;
+      state.dashboardSummary.monthlySummary = stats.chartData.monthlySummary;
+      state.dashboardSummary.distribution = stats.chartData.distribution;
+    }
+
     renderTotalVolumeCards(stats);
     renderMonthlySummaryChart();
     renderDistributionChart();
@@ -150,11 +81,10 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function renderTotalVolumeCards(stats) {
     const types = await fetchTransactionTypes();
-    const transactions = state.transactions.filter((tx) => tx.type !== "FAILED");
 
     const totalTransactions = stats.totalTransactions;
     const totalVolume = stats.totalAmount;
-    const averageAmount = totalTransactions > 0 ? totalVolume / totalTransactions : 0;
+    const averageAmount = stats.averageAmount || 0;
     const transactionTypes = types.length;
 
     const totalTransactionsEl = document.getElementById("total-transactions");
