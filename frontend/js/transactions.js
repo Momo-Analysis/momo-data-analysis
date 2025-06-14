@@ -7,6 +7,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const API_BASE_URL = "http://localhost:3000/api/transactions";
+  let searchTimeout = null; // For debouncing search input
 
   // --- API CALLS ---
   async function fetchTransactionTypes() {
@@ -24,24 +25,23 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
+  async function fetchSearchResults(query) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(query)}`);
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || "Failed to fetch search results");
+      }
+      return result.data;
+    } catch (error) {
+      console.error("Error fetching search results:", error);
+      return [];
+    }
+  }
+
   async function fetchTransactions() {
     const { currentPage, limit } = state.pagination;
     const { type, startDate, endDate } = state.filters;
-
-    // Skip fetching all transactions if search is active (we'll handle search separately)
-    if (state.filters.search) {
-      return {
-        data: [],
-        pagination: {
-          currentPage: 1,
-          totalPages: 1,
-          totalRecords: 0,
-          hasNextPage: false,
-          hasPrevPage: false,
-          limit,
-        },
-      };
-    }
 
     const queryParams = new URLSearchParams({
       page: currentPage,
@@ -61,7 +61,6 @@ document.addEventListener("DOMContentLoaded", () => {
       return result;
     } catch (error) {
       console.error("Error fetching transactions:", error);
-      alert("Failed to load transactions. Please try again later.");
       return {
         data: [],
         pagination: {
@@ -100,14 +99,13 @@ document.addEventListener("DOMContentLoaded", () => {
     const list = document.getElementById("transaction-list");
     list.innerHTML = "<tr><td colspan='5' class='text-center py-10 text-gray-500'>Loading...</td></tr>";
 
-    // If search is active, fetch transaction by ID instead of listing all
     if (state.filters.search) {
-      const transaction = await fetchTransactionById(state.filters.search, state.filters.type);
-      state.transactions = transaction ? [transaction] : [];
+      const searchResults = await fetchSearchResults(state.filters.search);
+      state.transactions = searchResults;
       state.pagination = {
         currentPage: 1,
         totalPages: 1,
-        totalRecords: transaction ? 1 : 0,
+        totalRecords: searchResults.length,
         hasNextPage: false,
         hasPrevPage: false,
         limit: state.pagination.limit,
@@ -127,13 +125,12 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (sorted.length === 0) {
       list.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">${
-        state.filters.search ? "No transaction found with that ID." : "No transactions found for the selected filters."
+        state.filters.search ? "No transactions found matching your search." : "No transactions found for the selected filters."
       }</td></tr>`;
     } else {
       sorted.forEach((tx) => {
         const row = document.createElement("tr");
         row.className = "hover:bg-gray-50 cursor-pointer";
-        // row.dataset.transactionId = tx.transactionId || tx.id;
         row.dataset.transactionId = tx.id;
         row.dataset.transactionType = tx.type;
         row.innerHTML = `
@@ -230,9 +227,19 @@ document.addEventListener("DOMContentLoaded", () => {
     state.filters.type = document.getElementById("filter-type").value;
     state.filters.startDate = document.getElementById("filter-start-date").value;
     state.filters.endDate = document.getElementById("filter-end-date").value;
-    state.filters.search = document.getElementById("search-input").value.trim();
     state.pagination.currentPage = 1;
     renderTransactionList();
+  }
+
+  function handleSearchInput(event) {
+    const query = event.target.value.trim();
+    state.filters.search = query;
+
+    // Debounce the search input to avoid excessive API calls
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+      renderTransactionList();
+    }, 300); // Wait 300ms after user stops typing before searching
   }
 
   function sortTransactions(transactions, field, direction) {
@@ -317,7 +324,7 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("filter-type").addEventListener("change", handleFilterChange);
   document.getElementById("filter-start-date").addEventListener("change", handleFilterChange);
   document.getElementById("filter-end-date").addEventListener("change", handleFilterChange);
-  document.getElementById("search-input").addEventListener("input", handleFilterChange);
+  document.getElementById("search-input").addEventListener("input", handleSearchInput);
 
   document.getElementById("pagination-controls").addEventListener("click", (e) => {
     if (e.target.id === "prev-page" && state.pagination.hasPrevPage) {
