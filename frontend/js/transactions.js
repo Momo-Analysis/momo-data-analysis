@@ -26,7 +26,22 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function fetchTransactions() {
     const { currentPage, limit } = state.pagination;
-    const { type, startDate, endDate, search } = state.filters;
+    const { type, startDate, endDate } = state.filters;
+
+    // Skip fetching all transactions if search is active (we'll handle search separately)
+    if (state.filters.search) {
+      return {
+        data: [],
+        pagination: {
+          currentPage: 1,
+          totalPages: 1,
+          totalRecords: 0,
+          hasNextPage: false,
+          hasPrevPage: false,
+          limit,
+        },
+      };
+    }
 
     const queryParams = new URLSearchParams({
       page: currentPage,
@@ -36,7 +51,6 @@ document.addEventListener("DOMContentLoaded", () => {
     if (type !== "All Types") queryParams.append("type", type);
     if (startDate) queryParams.append("startDate", startDate);
     if (endDate) queryParams.append("endDate", endDate);
-    if (search) queryParams.append("search", search); // Note: Backend doesn't currently support search param; adjust if implemented
 
     try {
       const response = await fetch(`${API_BASE_URL}?${queryParams.toString()}`);
@@ -62,9 +76,13 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   }
 
-  async function fetchTransactionById(id) {
+  async function fetchTransactionById(id, type = null) {
     try {
-      const response = await fetch(`${API_BASE_URL}/${id}`);
+      let url = `${API_BASE_URL}/${id}`;
+      if (type && type !== "All Types") {
+        url = `${API_BASE_URL}/${type.toLowerCase()}/${id}`;
+      }
+      const response = await fetch(url);
       const result = await response.json();
       if (!result.success) {
         throw new Error(result.message || "Failed to fetch transaction");
@@ -82,9 +100,23 @@ document.addEventListener("DOMContentLoaded", () => {
     const list = document.getElementById("transaction-list");
     list.innerHTML = "<tr><td colspan='5' class='text-center py-10 text-gray-500'>Loading...</td></tr>";
 
-    const result = await fetchTransactions();
-    state.transactions = result.data;
-    state.pagination = result.pagination;
+    // If search is active, fetch transaction by ID instead of listing all
+    if (state.filters.search) {
+      const transaction = await fetchTransactionById(state.filters.search, state.filters.type);
+      state.transactions = transaction ? [transaction] : [];
+      state.pagination = {
+        currentPage: 1,
+        totalPages: 1,
+        totalRecords: transaction ? 1 : 0,
+        hasNextPage: false,
+        hasPrevPage: false,
+        limit: state.pagination.limit,
+      };
+    } else {
+      const result = await fetchTransactions();
+      state.transactions = result.data;
+      state.pagination = result.pagination;
+    }
 
     list.innerHTML = "";
     const sorted = sortTransactions(
@@ -94,12 +126,15 @@ document.addEventListener("DOMContentLoaded", () => {
     );
 
     if (sorted.length === 0) {
-      list.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">No transactions found for the selected filters.</td></tr>`;
+      list.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">${
+        state.filters.search ? "No transaction found with that ID." : "No transactions found for the selected filters."
+      }</td></tr>`;
     } else {
       sorted.forEach((tx) => {
         const row = document.createElement("tr");
         row.className = "hover:bg-gray-50 cursor-pointer";
-        row.dataset.transactionId = tx.id;
+        row.dataset.transactionId = tx.transactionId || tx.id;
+        row.dataset.transactionType = tx.type;
         row.innerHTML = `
           <td class="px-6 py-4 whitespace-nowrap">
               <div class="text-sm font-medium text-gray-900">${tx.transactionId || tx.id}</div>
@@ -129,7 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
     container.innerHTML = "";
     const { currentPage, totalPages, hasNextPage, hasPrevPage } = state.pagination;
 
-    if (totalPages <= 1) return;
+    if (totalPages <= 1 || state.filters.search) return;
 
     const prevDisabled = !hasPrevPage ? "disabled" : "";
     const nextDisabled = !hasNextPage ? "disabled" : "";
@@ -153,8 +188,8 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  async function renderModal(transactionId) {
-    const transaction = await fetchTransactionById(transactionId);
+  async function renderModal(transactionId, transactionType = null) {
+    const transaction = await fetchTransactionById(transactionId, transactionType);
     if (!transaction) return;
 
     const modalContainer = document.getElementById("modal-container");
@@ -185,7 +220,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- LOGIC & EVENT HANDLERS ---
   function getFilteredTransactions() {
-    // Since filtering is handled server-side, we rely on the API response
+    // Filtering is handled server-side, except for search which we handle separately
     return state.transactions;
   }
 
@@ -193,14 +228,14 @@ document.addEventListener("DOMContentLoaded", () => {
     state.filters.type = document.getElementById("filter-type").value;
     state.filters.startDate = document.getElementById("filter-start-date").value;
     state.filters.endDate = document.getElementById("filter-end-date").value;
-    state.filters.search = document.getElementById("search-input").value;
+    state.filters.search = document.getElementById("search-input").value.trim();
     state.pagination.currentPage = 1;
     renderTransactionList();
   }
 
   function sortTransactions(transactions, field, direction) {
     if (!field) {
-      return transactions; // Return unsorted if no field is specified
+      return transactions;
     }
 
     return [...transactions].sort((a, b) => {
@@ -298,7 +333,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!row) return;
 
     const transactionId = row.dataset.transactionId;
-    await renderModal(transactionId);
+    const transactionType = row.dataset.transactionType;
+    await renderModal(transactionId, transactionType);
   });
 
   document.getElementById("modal-close").addEventListener("click", () => {
