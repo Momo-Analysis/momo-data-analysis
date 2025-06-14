@@ -100,24 +100,42 @@ router.get('/types', (req, res) => {
 
 // GET /api/transactions/:id - Get specific transaction by ID
 router.get('/:id', async (req, res) => {
+  let connection;
   try {
-    const connection = await dbInstance.getConnection();
-    const transactionId = req.params.id;
+    // Input validation
+    const transactionId = req.params.id?.trim();
+    if (!transactionId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Transaction ID is required'
+      });
+    }
+
+    // Get database connection
+    connection = await dbInstance.getConnection();
     const tableNames = TransactionService.getTableNames();
     
     let foundTransaction = null;
+    let searchErrors = [];
     
     // Search across all tables for the transaction ID
     for (const tableName of tableNames) {
       try {
-        const query = `SELECT *, '${tableName}' as table_name FROM ${tableName} WHERE transactionId = ? OR id = ?`;
-        const [rows] = await connection.execute(query, [transactionId, transactionId]);
+        const query = `
+          SELECT 
+            *,
+            '${tableName}' as table_name
+          FROM ${tableName} 
+          WHERE transactionId = $1 OR id::text = $1
+        `;
+        const { rows } = await connection.query(query, [transactionId]);
         
         if (rows.length > 0) {
           foundTransaction = rows[0];
           break;
         }
       } catch (error) {
+        searchErrors.push(`Error searching in table ${tableName}: ${error.message}`);
         console.error(`Error searching in table ${tableName}:`, error);
       }
     }
@@ -131,7 +149,8 @@ router.get('/:id', async (req, res) => {
     } else {
       res.status(404).json({
         success: false,
-        message: 'Transaction not found'
+        message: 'Transaction not found',
+        searchErrors: searchErrors.length > 0 ? searchErrors : undefined
       });
     }
     

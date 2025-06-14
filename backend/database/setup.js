@@ -1,37 +1,39 @@
-import DBInstance from "./connection.js";
-import tableQueries from "./tableCreationQueries.js";
+import dbInstance from './connection.js';
+import tableCreationQueries from './tableCreationQueries.js';
 import dotenv from "dotenv";
 import {storeSMSData} from "../scripts/processTransactions.js";
 dotenv.config();
 
 const createDatabaseQuery = `CREATE DATABASE IF NOT EXISTS ${process.env.database};`;
 
-const createTables = async (connection) => {
+async function setupDatabase() {
   try {
-    await connection.query(createDatabaseQuery);
-    console.log(`Database ${process.env.database} created or already exists.`);
-    await connection.query(`USE ${process.env.database}`);
-    console.log(`Using database ${process.env.database}.`);
-    await Promise.all(
-      tableQueries.map(async (query) => await connection.query(query))
-    );
-    console.log("All tables created successfully.");
+    const pool = await dbInstance.connect();
+    
+    // Create tables
+    for (const query of tableCreationQueries) {
+      try {
+        await pool.query(query);
+        console.log('Table created successfully');
+      } catch (error) {
+        console.error('Error creating table:', error.message);
+      }
+    }
+    
+    console.log('Database setup completed');
+    return storeSMSData(pool);
   } catch (error) {
-    console.error(`Error creating tables: ${error.message}`);
+    console.error('Database setup failed:', error.message);
+    process.exit(1);
   }
-};
+}
 
-const connection = await DBInstance.connect(false);
-createTables(connection)
-  .then(() => {
-    console.log("Database setup complete.");
-    return storeSMSData(connection);
-  })
+setupDatabase()
   .then(() => {
     console.log("SMS data inserted successfully.");
-    connection.end();
+    process.exit(0);
   })
   .catch((error) => {
     console.error(`Database setup failed: ${error.message}`);
-    connection.end();
+    process.exit(1);
   });

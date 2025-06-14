@@ -1,141 +1,4 @@
 document.addEventListener("DOMContentLoaded", () => {
-  // Mock Data based on API Contract
-  const mockApiData = {
-    transactions: [
-      {
-        id: 1,
-        type: "Incoming Money",
-        amount: 5000,
-        timestamp: "2025-05-15T10:00:00Z",
-        details: {
-          from: "John Doe",
-          transaction_id: "123456",
-          currency: "RWF",
-        },
-      },
-      {
-        id: 2,
-        type: "Payments to Code Holders",
-        amount: 1500,
-        timestamp: "2025-05-14T14:30:00Z",
-        details: {
-          to: "Jane Smith",
-          transaction_id: "789012",
-          currency: "RWF",
-        },
-      },
-      {
-        id: 3,
-        type: "Airtime Bill Payments",
-        amount: 3000,
-        timestamp: "2025-05-12T16:00:00Z",
-        details: { transaction_id: "345678", fee: 50, currency: "RWF" },
-      },
-      {
-        id: 4,
-        type: "Withdrawals from Agents",
-        amount: 20000,
-        timestamp: "2025-04-28T12:00:00Z",
-        details: {
-          agent_name: "Agent 007",
-          agent_number: "250123456789",
-          currency: "RWF",
-        },
-      },
-      {
-        id: 5,
-        type: "Internet and Voice Bundle Purchases",
-        amount: 2000,
-        timestamp: "2025-04-25T09:00:00Z",
-        details: { bundle: "1GB", currency: "RWF" },
-      },
-      {
-        id: 6,
-        type: "Incoming Money",
-        amount: 15000,
-        timestamp: "2025-04-20T11:00:00Z",
-        details: { from: "Alice", transaction_id: "987654", currency: "RWF" },
-      },
-      {
-        id: 7,
-        type: "Bank Transfers",
-        amount: 50000,
-        timestamp: "2025-04-15T18:00:00Z",
-        details: {
-          to_bank: "Bank of Kigali",
-          to_account: "1000123",
-          currency: "RWF",
-        },
-      },
-      {
-        id: 8,
-        type: "Cash Power Bill Payments",
-        amount: 12500,
-        timestamp: "2025-04-10T13:45:00Z",
-        details: {
-          meter_number: "04123456789",
-          token: "1234-5678-9012-3456",
-          currency: "RWF",
-        },
-      },
-      {
-        id: 9,
-        type: "Incoming Money",
-        amount: 7500,
-        timestamp: "2025-03-22T19:20:00Z",
-        details: { from: "Bob", transaction_id: "555444", currency: "RWF" },
-      },
-      {
-        id: 10,
-        type: "Payments to Code Holders",
-        amount: 4200,
-        timestamp: "2025-03-18T08:00:00Z",
-        details: {
-          to: "Groceries Store",
-          transaction_id: "333222",
-          currency: "RWF",
-        },
-      },
-      {
-        id: 11,
-        type: "Bank Deposits",
-        amount: 100000,
-        timestamp: "2025-03-10T15:00:00Z",
-        details: { to_bank: "Equity Bank", currency: "RWF" },
-      },
-      {
-        id: 12,
-        type: "Incoming Money",
-        amount: 2500,
-        timestamp: "2025-02-15T12:00:00Z",
-        details: { from: "Charlie", transaction_id: "111000", currency: "RWF" },
-      },
-      {
-        id: 13,
-        type: "Airtime Bill Payments",
-        amount: 5000,
-        timestamp: "2025-02-05T17:30:00Z",
-        details: { transaction_id: "999888", fee: 50, currency: "RWF" },
-      },
-      {
-        id: 14,
-        type: "Failed to Parse",
-        amount: 0,
-        timestamp: "2025-01-30T10:00:00Z",
-        details: {
-          raw_sms_body: "Yello! Your transfer of an unknown amount failed.",
-          error_message: "Amount not found",
-        },
-      },
-      {
-        id: 15,
-        type: "Incoming Money",
-        amount: 3000,
-        timestamp: "2025-01-20T14:00:00Z",
-        details: { from: "David", transaction_id: "777666", currency: "RWF" },
-      },
-    ],
-  };
   const state = {
     transactions: [],
     filters: { type: "All Types", startDate: "", endDate: "", search: "" },
@@ -143,57 +6,117 @@ document.addEventListener("DOMContentLoaded", () => {
     sorting: { field: null, direction: "asc" },
   };
 
-  // --- UI RENDERING ---
+  const API_BASE_URL = "http://localhost:3000/api/transactions";
 
-  function renderTransactionList() {
-    const list = document.getElementById("transaction-list");
-    list.innerHTML = "";
+  // --- API CALLS ---
+  async function fetchTransactionTypes() {
+    try {
+      const response = await fetch(`${API_BASE_URL}/types`);
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || "Failed to fetch transaction types");
+      }
+      return result.data;
+    } catch (error) {
+      console.error("Error fetching transaction types:", error);
+      alert("Failed to load transaction types. Please try again later.");
+      return [];
+    }
+  }
+
+  async function fetchTransactions() {
     const { currentPage, limit } = state.pagination;
-    const start = (currentPage - 1) * limit;
-    const end = start + limit;
+    const { type, startDate, endDate, search } = state.filters;
 
-    const filtered = getFilteredTransactions();
-    state.pagination.totalPages = Math.ceil(filtered.length / limit);
+    const queryParams = new URLSearchParams({
+      page: currentPage,
+      limit,
+    });
 
+    if (type !== "All Types") queryParams.append("type", type);
+    if (startDate) queryParams.append("startDate", startDate);
+    if (endDate) queryParams.append("endDate", endDate);
+    if (search) queryParams.append("search", search); // Note: Backend doesn't currently support search param; adjust if implemented
+
+    try {
+      const response = await fetch(`${API_BASE_URL}?${queryParams.toString()}`);
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || "Failed to fetch transactions");
+      }
+      return result;
+    } catch (error) {
+      console.error("Error fetching transactions:", error);
+      alert("Failed to load transactions. Please try again later.");
+      return {
+        data: [],
+        pagination: {
+          currentPage: 1,
+          totalPages: 1,
+          totalRecords: 0,
+          hasNextPage: false,
+          hasPrevPage: false,
+          limit,
+        },
+      };
+    }
+  }
+
+  async function fetchTransactionById(id) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/${id}`);
+      const result = await response.json();
+      if (!result.success) {
+        throw new Error(result.message || "Failed to fetch transaction");
+      }
+      return result.data;
+    } catch (error) {
+      console.error(`Error fetching transaction ${id}:`, error);
+      alert("Failed to load transaction details. Please try again later.");
+      return null;
+    }
+  }
+
+  // --- UI RENDERING ---
+  async function renderTransactionList() {
+    const list = document.getElementById("transaction-list");
+    list.innerHTML = "<tr><td colspan='5' class='text-center py-10 text-gray-500'>Loading...</td></tr>";
+
+    const result = await fetchTransactions();
+    state.transactions = result.data;
+    state.pagination = result.pagination;
+
+    list.innerHTML = "";
     const sorted = sortTransactions(
-      filtered,
+      state.transactions,
       state.sorting.field,
       state.sorting.direction
     );
 
-    const paginated = sorted.slice(start, end);
-    if (paginated.length === 0) {
+    if (sorted.length === 0) {
       list.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">No transactions found for the selected filters.</td></tr>`;
     } else {
-      paginated.forEach((tx) => {
+      sorted.forEach((tx) => {
         const row = document.createElement("tr");
         row.className = "hover:bg-gray-50 cursor-pointer";
         row.dataset.transactionId = tx.id;
         row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">${
-                          tx.id
-                        }</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm font-medium text-gray-900">${
-                          tx.type
-                        }</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-900">${tx.amount.toLocaleString(
-                          "en-US"
-                        )} RWF</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap">
-                        <div class="text-sm text-gray-500">${new Date(
-                          tx.timestamp
-                        ).toLocaleDateString()}</div>
-                    </td>
-                    <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                        <a href="#" class="text-blue-600 hover:text-blue-900">View</a>
-                    </td>
-                `;
+          <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm font-medium text-gray-900">${tx.transactionId || tx.id}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm font-medium text-gray-900">${tx.type}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm text-gray-900">${tx.amount.toLocaleString("en-US")} ${tx.currency || "RWF"}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap">
+              <div class="text-sm text-gray-500">${new Date(tx.timestamp).toLocaleDateString()}</div>
+          </td>
+          <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+              <a href="#" class="text-blue-600 hover:text-blue-900">View</a>
+          </td>
+        `;
         list.appendChild(row);
       });
     }
@@ -204,23 +127,24 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderPaginationControls() {
     const container = document.getElementById("pagination-controls");
     container.innerHTML = "";
-    const { currentPage, totalPages } = state.pagination;
+    const { currentPage, totalPages, hasNextPage, hasPrevPage } = state.pagination;
 
     if (totalPages <= 1) return;
 
-    const prevDisabled = currentPage === 1 ? "disabled" : "";
-    const nextDisabled = currentPage === totalPages ? "disabled" : "";
+    const prevDisabled = !hasPrevPage ? "disabled" : "";
+    const nextDisabled = !hasNextPage ? "disabled" : "";
 
     container.innerHTML = `
-            <button id="prev-page" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" ${prevDisabled}>Previous</button>
-            <span class="text-sm text-gray-700">Page ${currentPage} of ${totalPages}</span>
-            <button id="next-page" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" ${nextDisabled}>Next</button>
-        `;
+      <button id="prev-page" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" ${prevDisabled}>Previous</button>
+      <span class="text-sm text-gray-700">Page ${currentPage} of ${totalPages}</span>
+      <button id="next-page" class="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed" ${nextDisabled}>Next</button>
+    `;
   }
 
-  function renderFilterOptions() {
+  async function renderFilterOptions() {
     const select = document.getElementById("filter-type");
-    const types = [...new Set(mockApiData.transactions.map((tx) => tx.type))];
+    select.innerHTML = '<option>All Types</option>';
+    const types = await fetchTransactionTypes();
     types.forEach((type) => {
       const option = document.createElement("option");
       option.value = type;
@@ -229,32 +153,28 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  function renderModal(transaction) {
+  async function renderModal(transactionId) {
+    const transaction = await fetchTransactionById(transactionId);
+    if (!transaction) return;
+
     const modalContainer = document.getElementById("modal-container");
     const modalContent = document.getElementById("modal-content");
 
     let detailsHtml = `<ul class="space-y-2 text-sm">
-            <li><strong class="font-medium text-gray-600 w-24 inline-block">ID:</strong> ${
-              transaction.id
-            }</li>
-            <li><strong class="font-medium text-gray-600 w-24 inline-block">Type:</strong> ${
-              transaction.type
-            }</li>
-            <li><strong class="font-medium text-gray-600 w-24 inline-block">Amount:</strong> ${transaction.amount.toLocaleString(
-              "en-US"
-            )} RWF</li>
-            <li><strong class="font-medium text-gray-600 w-24 inline-block">Date:</strong> ${new Date(
-              transaction.timestamp
-            ).toLocaleString()}</li>
-        </ul><hr class="my-3">
-        <h4 class="font-semibold text-gray-800 mb-2">Additional Details:</h4>
-        <ul class="space-y-2 text-sm">`;
+      <li><strong class="font-medium text-gray-600 w-24 inline-block">ID:</strong> ${transaction.transactionId || transaction.id}</li>
+      <li><strong class="font-medium text-gray-600 w-24 inline-block">Type:</strong> ${transaction.type}</li>
+      <li><strong class="font-medium text-gray-600 w-24 inline-block">Amount:</strong> ${transaction.amount.toLocaleString("en-US")} ${transaction.currency || "RWF"}</li>
+      <li><strong class="font-medium text-gray-600 w-24 inline-block">Date:</strong> ${new Date(transaction.timestamp).toLocaleString()}</li>
+    </ul><hr class="my-3">
+    <h4 class="font-semibold text-gray-800 mb-2">Additional Details:</h4>
+    <ul class="space-y-2 text-sm">`;
 
-    for (const [key, value] of Object.entries(transaction.details)) {
-      detailsHtml += `<li><strong class="font-medium text-gray-600 w-24 inline-block capitalize">${key.replace(
-        "_",
-        " "
-      )}:</strong> ${value}</li>`;
+    // Include all additional fields dynamically
+    for (const [key, value] of Object.entries(transaction)) {
+      if (["id", "transactionId", "type", "amount", "timestamp", "currency", "table_name"].includes(key)) continue;
+      if (value !== null && value !== undefined) {
+        detailsHtml += `<li><strong class="font-medium text-gray-600 w-24 inline-block capitalize">${key.replace("_", " ")}:</strong> ${value}</li>`;
+      }
     }
 
     detailsHtml += `</ul>`;
@@ -265,35 +185,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- LOGIC & EVENT HANDLERS ---
   function getFilteredTransactions() {
-    const { type, startDate, endDate, search } = state.filters;
-    return state.transactions.filter((tx) => {
-      const txDate = new Date(tx.timestamp);
-      const isTypeMatch = type === "All Types" || tx.type === type;
-      const isStartDateMatch = !startDate || txDate >= new Date(startDate);
-      const isEndDateMatch = !endDate || txDate <= new Date(endDate);
-
-      // Search functionality - search in type, amount, and details
-      const isSearchMatch =
-        !search ||
-        tx.type.toLowerCase().includes(search.toLowerCase()) ||
-        tx.id.toString().includes(search) ||
-        tx.amount.toString().includes(search) ||
-        Object.values(tx.details).some((detail) =>
-          detail.toString().toLowerCase().includes(search.toLowerCase())
-        );
-
-      return isTypeMatch && isStartDateMatch && isEndDateMatch && isSearchMatch;
-    });
+    // Since filtering is handled server-side, we rely on the API response
+    return state.transactions;
   }
+
   function handleFilterChange() {
     state.filters.type = document.getElementById("filter-type").value;
-    state.filters.startDate =
-      document.getElementById("filter-start-date").value;
+    state.filters.startDate = document.getElementById("filter-start-date").value;
     state.filters.endDate = document.getElementById("filter-end-date").value;
     state.filters.search = document.getElementById("search-input").value;
     state.pagination.currentPage = 1;
     renderTransactionList();
   }
+
   function sortTransactions(transactions, field, direction) {
     if (!field) {
       return transactions; // Return unsorted if no field is specified
@@ -304,8 +208,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       switch (field) {
         case "id":
-          aValue = a.id;
-          bValue = b.id;
+          aValue = a.transactionId || a.id;
+          bValue = b.transactionId || b.id;
           break;
         case "type":
           aValue = a.type;
@@ -336,22 +240,17 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function handleSort(field) {
-    // Toggle direction if clicking the same field, otherwise set to asc
     if (state.sorting.field === field) {
-      state.sorting.direction =
-        state.sorting.direction === "asc" ? "desc" : "asc";
+      state.sorting.direction = state.sorting.direction === "asc" ? "desc" : "asc";
     } else {
       state.sorting.field = field;
       state.sorting.direction = "asc";
     }
-
-    // Reset pagination to first page
     state.pagination.currentPage = 1;
     renderTransactionList();
   }
 
   function updateSortIcons() {
-    // Reset all sort icons
     const sortHeaders = document.querySelectorAll("[data-sort]");
     sortHeaders.forEach((header) => {
       const icon = header.querySelector("svg");
@@ -359,83 +258,53 @@ document.addEventListener("DOMContentLoaded", () => {
       icon.classList.add("text-gray-400");
     });
 
-    // Update active sort icon
     if (state.sorting.field) {
-      const activeHeader = document.querySelector(
-        `[data-sort="${state.sorting.field}"]`
-      );
+      const activeHeader = document.querySelector(`[data-sort="${state.sorting.field}"]`);
       if (activeHeader) {
         const icon = activeHeader.querySelector("svg");
         icon.classList.remove("text-gray-400");
         icon.classList.add("text-blue-600");
 
-        // Update icon direction
         const path = icon.querySelector("path");
-        if (state.sorting.direction === "desc") {
-          path.setAttribute(
-            "d",
-            "M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
-          );
-        } else {
-          path.setAttribute(
-            "d",
-            "M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
-          );
-        }
+        path.setAttribute(
+          "d",
+          state.sorting.direction === "desc"
+            ? "M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+            : "M7 16V4m0 0L3 8m4-4l4 4m6 0v12m0 0l4-4m-4 4l-4-4"
+        );
       }
     }
   }
 
-  // Event Listeners
-  // Dynamic filtering - no apply button needed
-  document
-    .getElementById("filter-type")
-    .addEventListener("change", handleFilterChange);
-  document
-    .getElementById("filter-start-date")
-    .addEventListener("change", handleFilterChange);
-  document
-    .getElementById("filter-end-date")
-    .addEventListener("change", handleFilterChange);
-  document
-    .getElementById("search-input")
-    .addEventListener("input", handleFilterChange);
+  // --- EVENT LISTENERS ---
+  document.getElementById("filter-type").addEventListener("change", handleFilterChange);
+  document.getElementById("filter-start-date").addEventListener("change", handleFilterChange);
+  document.getElementById("filter-end-date").addEventListener("change", handleFilterChange);
+  document.getElementById("search-input").addEventListener("input", handleFilterChange);
 
-  document
-    .getElementById("pagination-controls")
-    .addEventListener("click", (e) => {
-      if (e.target.id === "prev-page") {
-        if (state.pagination.currentPage > 1) {
-          state.pagination.currentPage--;
-          renderTransactionList();
-        }
-      }
-      if (e.target.id === "next-page") {
-        if (state.pagination.currentPage < state.pagination.totalPages) {
-          state.pagination.currentPage++;
-          renderTransactionList();
-        }
-      }
-    });
+  document.getElementById("pagination-controls").addEventListener("click", (e) => {
+    if (e.target.id === "prev-page" && state.pagination.hasPrevPage) {
+      state.pagination.currentPage--;
+      renderTransactionList();
+    }
+    if (e.target.id === "next-page" && state.pagination.hasNextPage) {
+      state.pagination.currentPage++;
+      renderTransactionList();
+    }
+  });
 
-  document.getElementById("transaction-list").addEventListener("click", (e) => {
+  document.getElementById("transaction-list").addEventListener("click", async (e) => {
     const row = e.target.closest("tr");
     if (!row) return;
 
-    const transactionId = parseInt(row.dataset.transactionId);
-    const transaction = state.transactions.find(
-      (tx) => tx.id === transactionId
-    );
-    if (transaction) {
-      renderModal(transaction);
-    }
+    const transactionId = row.dataset.transactionId;
+    await renderModal(transactionId);
   });
 
   document.getElementById("modal-close").addEventListener("click", () => {
     document.getElementById("modal-container").classList.add("hidden");
   });
 
-  // Sort event listeners
   document.addEventListener("click", (e) => {
     const sortHeader = e.target.closest("[data-sort]");
     if (sortHeader) {
@@ -445,12 +314,9 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // --- INITIALIZATION ---
-  function init() {
-    state.transactions = mockApiData.transactions.sort(
-      (a, b) => new Date(b.timestamp) - new Date(a.timestamp)
-    );
-    renderFilterOptions();
-    renderTransactionList();
+  async function init() {
+    await renderFilterOptions();
+    await renderTransactionList();
   }
 
   init();
