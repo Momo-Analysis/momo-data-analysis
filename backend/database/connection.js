@@ -16,7 +16,6 @@ class DatabaseConnection {
     }
 
     try {
-<<<<<<< Updated upstream
       this.connection = await createConnection({
         host: process.env.host || 'localhost',
         user: process.env.user || 'root',
@@ -24,14 +23,6 @@ class DatabaseConnection {
         ...(withDB ? {database: process.env.database || 'momodb'} : {}),
         dateStrings: true,
         connectTimeout: 10000,
-=======
-      this.pool = new Pool({
-        host: process.env.DB_HOST || 'localhost',
-        user: process.env.DB_USER || 'postgres',
-        password: process.env.DB_PASSWORD || 'postgres',
-        database: process.env.DB_NAME || 'momodb',
-        port: process.env.DB_PORT || 5432,
->>>>>>> Stashed changes
       });
 
       // Test the connection

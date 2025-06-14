@@ -83,11 +83,7 @@ class Transaction {
         ORDER BY timestamp DESC 
         LIMIT $${params.length + 1} OFFSET $${params.length + 2}
       `;
-<<<<<<< Updated upstream
       const [rows] = await connection.execute(dataQuery, [...params, limit.toString(), offset.toString()]);
-=======
-      const result = await client.query(dataQuery, [...params, limit, offset]);
->>>>>>> Stashed changes
 
       return {
         data: result.rows,
