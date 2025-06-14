@@ -98,16 +98,64 @@ router.get('/types', (req, res) => {
   }
 });
 
-// GET /api/transactions/:id - Get specific transaction by ID
-router.get('/:id', async (req, res) => {
+// GET /api/transactions/:transactionId - Get specific transaction by transactionId
+router.get('/:transactionId', async (req, res) => {
   try {
     const connection = await dbInstance.getConnection();
-    const transactionId = req.params.id;
+    const transactionId = req.params.transactionId;
     const tableNames = TransactionService.getTableNames();
     
     let foundTransaction = null;
     
-    // Search across all tables for the transaction ID
+    // Search across all tables for the transaction transactionId
+    for (const tableName of tableNames) {
+      try {
+        const query = `SELECT *, '${tableName}' as table_name FROM ${tableName} WHERE transactionId = ?`;
+        const [rows] = await connection.execute(query, [transactionId]);
+        
+        if (rows.length > 0) {
+          foundTransaction = rows[0];
+          break;
+        }
+      } catch (error) {
+        console.error(`Error searching in table ${tableName}:`, error);
+      }
+    }
+    
+    if (foundTransaction) {
+      res.json({
+        success: true,
+        message: 'Transaction found',
+        data: foundTransaction
+      });
+    } else {
+      res.status(404).json({
+        success: false,
+        message: 'Transaction not found'
+      });
+    }
+    
+  } catch (error) {
+    console.error('Error in GET /api/transactions/:transactionId:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
+    });
+  }
+});
+
+// GET /api/transactions/:type/:id - Get specific transaction by ID
+router.get('/:type/:id', async (req, res) => {
+  try {
+    const connection = await dbInstance.getConnection();
+    const transactionId = req.params.id;
+    const transactionType = req.params.type;
+    const tableNames = TransactionService.getTableNames().filter(table => table === transactionType);
+    
+    let foundTransaction = null;;
+    
+    // Search across choosen table for the transaction ID
     for (const tableName of tableNames) {
       try {
         const query = `SELECT *, '${tableName}' as table_name FROM ${tableName} WHERE transactionId = ? OR id = ?`;
@@ -136,7 +184,7 @@ router.get('/:id', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('Error in GET /api/transactions/:id:', error);
+    console.error('Error in GET /api/transactions/type:/:id:', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
