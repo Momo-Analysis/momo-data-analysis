@@ -133,11 +133,12 @@ document.addEventListener("DOMContentLoaded", () => {
       sorted.forEach((tx) => {
         const row = document.createElement("tr");
         row.className = "hover:bg-gray-50 cursor-pointer";
-        row.dataset.transactionId = tx.transactionId || tx.id;
+        // row.dataset.transactionId = tx.transactionId || tx.id;
+        row.dataset.transactionId = tx.id;
         row.dataset.transactionType = tx.type;
         row.innerHTML = `
           <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm font-medium text-gray-900">${tx.transactionId || tx.id}</div>
+              <div class="text-sm font-medium text-gray-900">${tx.id}</div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
               <div class="text-sm font-medium text-gray-900">${tx.type}</div>
@@ -188,15 +189,16 @@ document.addEventListener("DOMContentLoaded", () => {
     });
   }
 
-  async function renderModal(transactionId, transactionType = null) {
-    const transaction = await fetchTransactionById(transactionId, transactionType);
+  async function renderModal(id, transactionType = null) {
+    const transaction = await fetchTransactionById(id, transactionType);
     if (!transaction) return;
 
     const modalContainer = document.getElementById("modal-container");
     const modalContent = document.getElementById("modal-content");
 
     let detailsHtml = `<ul class="space-y-2 text-sm">
-      <li><strong class="font-medium text-gray-600 w-24 inline-block">ID:</strong> ${transaction.transactionId || transaction.id}</li>
+      <li><strong class="font-medium text-gray-600 w-24 inline-block">ID:</strong> ${transaction.id }</li>
+      <li><strong class="font-medium text-gray-600 w-24 inline-block">TxID:</strong> ${transaction.transactionId}</li>
       <li><strong class="font-medium text-gray-600 w-24 inline-block">Type:</strong> ${transaction.type}</li>
       <li><strong class="font-medium text-gray-600 w-24 inline-block">Amount:</strong> ${transaction.amount.toLocaleString("en-US")} ${transaction.currency || "RWF"}</li>
       <li><strong class="font-medium text-gray-600 w-24 inline-block">Date:</strong> ${new Date(transaction.timestamp).toLocaleString()}</li>
@@ -332,9 +334,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const row = e.target.closest("tr");
     if (!row) return;
 
-    const transactionId = row.dataset.transactionId;
+    const id = row.dataset.transactionId;
+    console.log(row.dataset);
     const transactionType = row.dataset.transactionType;
-    await renderModal(transactionId, transactionType);
+    await renderModal(id, transactionType);
   });
 
   document.getElementById("modal-close").addEventListener("click", () => {
