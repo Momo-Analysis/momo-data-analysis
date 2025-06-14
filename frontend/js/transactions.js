@@ -202,10 +202,16 @@ document.addEventListener("DOMContentLoaded", () => {
         row.dataset.transactionType = tx.type;
         row.innerHTML = `
           <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm font-medium text-gray-900">${tx.id}</div>
+              <div class="text-sm font-medium text-gray-900" title="ID">
+                  <span class="underline decoration-dotted hover:no-underline">${tx.id}</span>
+                  ${tx.transactionId
+                      ? ' ' + `<span class="font-normal text-gray-500 underline decoration-dotted hover:no-underline" title="TxID">${tx.transactionId}</span>`
+                      : ''
+                  }
+              </div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm font-medium text-gray-900">${tx.type}</div>
+              <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border-blue-500 border">${tx.type.replace('_', ' ')}</div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
               <div class="text-sm text-gray-900">${tx.amount.toLocaleString("en-US")} ${tx.currency || "RWF"}</div>
@@ -329,8 +335,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
       switch (field) {
         case "id":
-          aValue = a.transactionId || a.id;
-          bValue = b.transactionId || b.id;
+          aValue = a.id;
+          bValue = b.id;
           break;
         case "type":
           aValue = a.type;
