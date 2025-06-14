@@ -207,7 +207,7 @@ document.addEventListener("DOMContentLoaded", () => {
     for (const [key, value] of Object.entries(transaction)) {
       if (["id", "transactionId", "type", "amount", "timestamp", "currency", "table_name"].includes(key)) continue;
       if (value !== null && value !== undefined) {
-        detailsHtml += `<li><strong class="font-medium text-gray-600 w-24 inline-block capitalize">${key.replace("_", " ")}:</strong> ${value}</li>`;
+        detailsHtml += `<li><strong class="font-medium text-gray-600 w-24 inline capitalize">${key.replace("_", " ")}:</strong> ${value}</li>`;
       }
     }
 

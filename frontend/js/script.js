@@ -244,7 +244,7 @@ document.addEventListener('DOMContentLoaded', () => {
         <ul class="space-y-2 text-sm">`;
         
         for(const [key, value] of Object.entries(transaction.details)) {
-            detailsHtml += `<li><strong class="font-medium text-gray-600 w-24 inline-block capitalize">${key.replace('_', ' ')}:</strong> ${value}</li>`;
+            detailsHtml += `<li><strong class="font-medium text-gray-600 w-24 inline capitalize">${key.replace('_', ' ')}:</strong> ${value}</li>`;
         }
 
         detailsHtml += `</ul>`;
