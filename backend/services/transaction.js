@@ -14,6 +14,12 @@ class Transaction {
     const conditions = [];
     const params = [];
 
+    // Add text search filter
+    if (filters.q) {
+      conditions.push('originalSMS LIKE ?');
+      params.push(`%${filters.q}%`);
+    }
+
     // Filter by type
     if (filters.type && this.getTransactionTypes().includes(filters.type.toUpperCase())) {
       conditions.push('type = ?');

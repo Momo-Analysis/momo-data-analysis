@@ -11,7 +11,8 @@ router.get('/', async (req, res) => {
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
     
     const filters = {};
-    
+
+    if (req.query.q) filters.q = req.query.q;
     if (req.query.type) filters.type = req.query.type;
     if (req.query.date) filters.date = req.query.date;
     if (req.query.startDate) filters.startDate = req.query.startDate;
@@ -98,59 +99,6 @@ router.get('/types', (req, res) => {
   }
 });
 
-// Search transactions by text in originalSMS
-router.get('/search', async (req, res) => {
-  try {
-    const connection = await dbInstance.getConnection();
-    const searchText = req.query.q;
-    
-    if (!searchText) {
-      return res.status(400).json({
-        success: false,
-        message: 'Query parameter "q" is required'
-      });
-    }
-
-    const tableNames = TransactionService.getTableNames();
-    const searchResults = [];
-
-    for (const tableName of tableNames) {
-      try {
-        const query = `
-          SELECT *, '${tableName}' as table_name 
-          FROM ${tableName} 
-          WHERE originalSMS LIKE ?
-        `;
-        const [rows] = await connection.execute(query, [`%${searchText}%`]);
-        
-        searchResults.push(...rows);
-      } catch (error) {
-        console.error(`Error searching in table ${tableName}:`, error);
-      }
-    }
-
-    if (searchResults.length > 0) {
-      res.json({
-        success: true,
-        message: 'Transactions found',
-        data: searchResults
-      });
-    } else {
-      res.status(404).json({
-        success: false,
-        message: 'No transactions found matching the search query'
-      });
-    }
-  } catch (error) {
-    console.error('Error in GET /api/transactions/search:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error',
-      error: process.env.NODE_ENV === 'development' ? error.message : undefined
-    });
-  }
-});
-
 // GET /api/transactions/:type/:id - Get specific transaction by ID
 router.get('/:type/:id', async (req, res) => {
   try {
@@ -159,7 +107,7 @@ router.get('/:type/:id', async (req, res) => {
     const transactionType = req.params.type;
     const tableNames = TransactionService.getTableNames().filter(table => table === transactionType);
     
-    let foundTransaction = null;;
+    let foundTransaction = null;
     
     // Search across choosen table for the transaction ID
     for (const tableName of tableNames) {
