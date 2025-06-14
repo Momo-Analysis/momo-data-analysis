@@ -106,7 +106,6 @@ router.get('/:transactionId', async (req, res) => {
     const tableNames = TransactionService.getTableNames();
     
     let foundTransaction = null;
-    let searchErrors = [];
     
     // Search across all tables for the transaction transactionId
     for (const tableName of tableNames) {
@@ -159,21 +158,14 @@ router.get('/:type/:id', async (req, res) => {
     // Search across choosen table for the transaction ID
     for (const tableName of tableNames) {
       try {
-        const query = `
-          SELECT 
-            *,
-            '${tableName}' as table_name
-          FROM ${tableName} 
-          WHERE transactionId = $1 OR id::text = $1
-        `;
-        const { rows } = await connection.query(query, [transactionId]);
+        const query = `SELECT *, '${tableName}' as table_name FROM ${tableName} WHERE transactionId = ? OR id = ?`;
+        const [rows] = await connection.execute(query, [transactionId, transactionId]);
         
         if (rows.length > 0) {
           foundTransaction = rows[0];
           break;
         }
       } catch (error) {
-        searchErrors.push(`Error searching in table ${tableName}: ${error.message}`);
         console.error(`Error searching in table ${tableName}:`, error);
       }
     }
@@ -187,13 +179,12 @@ router.get('/:type/:id', async (req, res) => {
     } else {
       res.status(404).json({
         success: false,
-        message: 'Transaction not found',
-        searchErrors: searchErrors.length > 0 ? searchErrors : undefined
+        message: 'Transaction not found'
       });
     }
     
   } catch (error) {
-    console.error('Error in GET /api/transactions/type:/:id:', error);
+    console.error('Error in GET /api/transactions/:type/:id', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
