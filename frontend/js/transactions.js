@@ -8,6 +8,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const API_BASE_URL = "http://localhost:3000/api/transactions";
   let searchTimeout = null; // For debouncing search input
+  let currentRequest = null; // For tracking and canceling in-flight requests
 
   // --- API CALLS ---
   async function fetchTransactionTypes() {
@@ -30,6 +31,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const { type, startDate, endDate } = state.filters;
 
     try {
+      // Cancel any in-flight request
+      if (currentRequest) {
+        currentRequest.abort();
+      }
+
+      // Create a new AbortController
+      const controller = new AbortController();
+      currentRequest = controller;
+
       const queryParams = new URLSearchParams({
         q: query,
         page: currentPage,
@@ -41,14 +51,25 @@ document.addEventListener("DOMContentLoaded", () => {
       if (startDate) queryParams.append("startDate", startDate);
       if (endDate) queryParams.append("endDate", endDate);
 
-      const response = await fetch(`${API_BASE_URL}?${queryParams.toString()}`);
+      const response = await fetch(`${API_BASE_URL}?${queryParams.toString()}`, {
+        signal: controller.signal
+      });
+
+      // Clear the current request if it's this one
+      if (currentRequest === controller) {
+        currentRequest = null;
+      }
+
       const result = await response.json();
       if (!result.success) {
         throw new Error(result.message || "Failed to fetch search results");
       }
       return result;
     } catch (error) {
-      console.error("Error fetching search results:", error);
+      // Don't log abort errors as they're expected
+      if (error.name !== 'AbortError') {
+        console.error("Error fetching search results:", error);
+      }
       return {
         data: [],
         pagination: {
@@ -77,14 +98,34 @@ document.addEventListener("DOMContentLoaded", () => {
     if (endDate) queryParams.append("endDate", endDate);
 
     try {
-      const response = await fetch(`${API_BASE_URL}?${queryParams.toString()}`);
+      // Cancel any in-flight request
+      if (currentRequest) {
+        currentRequest.abort();
+      }
+
+      // Create a new AbortController
+      const controller = new AbortController();
+      currentRequest = controller;
+
+      const response = await fetch(`${API_BASE_URL}?${queryParams.toString()}`, {
+        signal: controller.signal
+      });
+
+      // Clear the current request if it's this one
+      if (currentRequest === controller) {
+        currentRequest = null;
+      }
+
       const result = await response.json();
       if (!result.success) {
         throw new Error(result.message || "Failed to fetch transactions");
       }
       return result;
     } catch (error) {
-      console.error("Error fetching transactions:", error);
+      // Don't log abort errors as they're expected
+      if (error.name !== 'AbortError') {
+        console.error("Error fetching transactions:", error);
+      }
       return {
         data: [],
         pagination: {
@@ -123,15 +164,24 @@ document.addEventListener("DOMContentLoaded", () => {
     const list = document.getElementById("transaction-list");
     list.innerHTML = "<tr><td colspan='5' class='text-center py-10 text-gray-500'>Loading...</td></tr>";
 
+    let result;
+    // Use the appropriate fetch method based on whether there's a search query
     if (state.filters.search) {
-      const result = await fetchSearchResults(state.filters.search);
-      state.transactions = result.data;
-      state.pagination = result.pagination;
+      result = await fetchSearchResults(state.filters.search);
     } else {
-      const result = await fetchTransactions();
-      state.transactions = result.data;
-      state.pagination = result.pagination;
+      result = await fetchTransactions();
     }
+
+    // Update state with the results
+    state.transactions = result.data || [];
+    state.pagination = result.pagination || {
+      currentPage: 1,
+      totalPages: 1,
+      totalRecords: 0,
+      hasNextPage: false,
+      hasPrevPage: false,
+      limit: state.pagination.limit,
+    };
 
     list.innerHTML = "";
     const sorted = sortTransactions(
@@ -241,10 +291,18 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function handleFilterChange() {
+    // Update filter state from form fields
     state.filters.type = document.getElementById("filter-type").value;
     state.filters.startDate = document.getElementById("filter-start-date").value;
     state.filters.endDate = document.getElementById("filter-end-date").value;
+
+    // Reset to first page when filters change
     state.pagination.currentPage = 1;
+
+    // Cancel any pending search timeout
+    clearTimeout(searchTimeout);
+
+    // Render the updated list with all filters applied
     renderTransactionList();
   }
 
@@ -256,6 +314,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // Debounce the search input to avoid excessive API calls
     clearTimeout(searchTimeout);
     searchTimeout = setTimeout(() => {
+      // Render the updated list with all filters applied
       renderTransactionList();
     }, 300); // Wait 300ms after user stops typing before searching
   }
@@ -378,8 +437,22 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 
   // --- INITIALIZATION ---
+  function resetFormFields() {
+    // Reset form fields to match the state
+    document.getElementById("filter-type").value = state.filters.type;
+    document.getElementById("filter-start-date").value = state.filters.startDate;
+    document.getElementById("filter-end-date").value = state.filters.endDate;
+    document.getElementById("search-input").value = state.filters.search;
+  }
+
   async function init() {
+    // Reset state and form fields on page load
+    state.filters = { type: "All Types", startDate: "", endDate: "", search: "" };
+    state.pagination = { currentPage: 1, limit: 7, totalPages: 1 };
+    state.sorting = { field: null, direction: "asc" };
+
     await renderFilterOptions();
+    resetFormFields();
     await renderTransactionList();
   }
 
