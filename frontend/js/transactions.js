@@ -254,7 +254,7 @@ document.addEventListener("DOMContentLoaded", () => {
     types.forEach((type) => {
       const option = document.createElement("option");
       option.value = type;
-      option.textContent = type;
+      option.textContent = type.toLowerCase().replace('_', ' ');
       select.appendChild(option);
     });
   }
