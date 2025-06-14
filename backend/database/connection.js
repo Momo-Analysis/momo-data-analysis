@@ -28,8 +28,7 @@ class DatabaseConnection {
       console.log('Database connected successfully');
       return this.connection;
     } catch (error) {
-      console.error('Database connection failed:', error.message);
-      console.error('Full error details:', {
+      console.error('Database connection failed:', {
         message: error.message,
         code: error.code,
         errno: error.errno,

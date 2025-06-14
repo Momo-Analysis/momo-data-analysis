@@ -20,7 +20,7 @@ const createTables = async (connection) => {
     console.error(`Error creating tables: ${error.message}`);
   }
 };
-console.log(process.env.database, process.env.host, process.env.user, process.env.password? "Yes" : "No");
+
 const connection = await DBInstance.connect(false);
 createTables(connection)
   .then(() => {
