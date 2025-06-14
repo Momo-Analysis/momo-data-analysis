@@ -428,6 +428,13 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("modal-container").classList.add("hidden");
   });
 
+  // Close modal when clicking outside of it
+  document.getElementById("modal-container").addEventListener("click", (e) => {
+    if (e.target === document.getElementById("modal-container")) {
+      document.getElementById("modal-container").classList.add("hidden");
+    }
+  });
+
   document.addEventListener("click", (e) => {
     const sortHeader = e.target.closest("[data-sort]");
     if (sortHeader) {
