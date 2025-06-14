@@ -26,16 +26,40 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   async function fetchSearchResults(query) {
+    const { currentPage, limit } = state.pagination;
+    const { type, startDate, endDate } = state.filters;
+
     try {
-      const response = await fetch(`${API_BASE_URL}/search?q=${encodeURIComponent(query)}`);
+      const queryParams = new URLSearchParams({
+        q: query,
+        page: currentPage,
+        limit
+      });
+
+      // Add other filters if they are set
+      if (type !== "All Types") queryParams.append("type", type);
+      if (startDate) queryParams.append("startDate", startDate);
+      if (endDate) queryParams.append("endDate", endDate);
+
+      const response = await fetch(`${API_BASE_URL}?${queryParams.toString()}`);
       const result = await response.json();
       if (!result.success) {
         throw new Error(result.message || "Failed to fetch search results");
       }
-      return result.data;
+      return result;
     } catch (error) {
       console.error("Error fetching search results:", error);
-      return [];
+      return {
+        data: [],
+        pagination: {
+          currentPage: 1,
+          totalPages: 1,
+          totalRecords: 0,
+          hasNextPage: false,
+          hasPrevPage: false,
+          limit,
+        },
+      };
     }
   }
 
@@ -100,16 +124,9 @@ document.addEventListener("DOMContentLoaded", () => {
     list.innerHTML = "<tr><td colspan='5' class='text-center py-10 text-gray-500'>Loading...</td></tr>";
 
     if (state.filters.search) {
-      const searchResults = await fetchSearchResults(state.filters.search);
-      state.transactions = searchResults;
-      state.pagination = {
-        currentPage: 1,
-        totalPages: 1,
-        totalRecords: searchResults.length,
-        hasNextPage: false,
-        hasPrevPage: false,
-        limit: state.pagination.limit,
-      };
+      const result = await fetchSearchResults(state.filters.search);
+      state.transactions = result.data;
+      state.pagination = result.pagination;
     } else {
       const result = await fetchTransactions();
       state.transactions = result.data;
@@ -162,7 +179,7 @@ document.addEventListener("DOMContentLoaded", () => {
     container.innerHTML = "";
     const { currentPage, totalPages, hasNextPage, hasPrevPage } = state.pagination;
 
-    if (totalPages <= 1 || state.filters.search) return;
+    if (totalPages <= 1) return;
 
     const prevDisabled = !hasPrevPage ? "disabled" : "";
     const nextDisabled = !hasNextPage ? "disabled" : "";
@@ -234,6 +251,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function handleSearchInput(event) {
     const query = event.target.value.trim();
     state.filters.search = query;
+    state.pagination.currentPage = 1; // Reset to first page when search changes
 
     // Debounce the search input to avoid excessive API calls
     clearTimeout(searchTimeout);
