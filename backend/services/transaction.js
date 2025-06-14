@@ -204,13 +204,14 @@ class Transaction {
 
         // Monthly data query
         const monthlyQuery = `
-          SELECT 
+          SELECT
+            YEAR(timestamp) as year,
             MONTH(timestamp) as month,
             type,
             SUM(amount) as total_amount
           FROM ${tableName}
           ${whereClause}
-          GROUP BY MONTH(timestamp), type
+          GROUP BY YEAR(timestamp), MONTH(timestamp), type
         `;
 
         try {
