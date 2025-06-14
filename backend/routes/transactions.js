@@ -184,7 +184,7 @@ router.get('/:type/:id', async (req, res) => {
     }
     
   } catch (error) {
-    console.error('Error in GET /api/transactions/type:/:id:', error);
+    console.error('Error in GET /api/transactions/:type/:id', error);
     res.status(500).json({
       success: false,
       message: 'Internal server error',
