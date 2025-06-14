@@ -49,8 +49,8 @@ async function insertTransaction(connection, transaction) {
         throw new Error(`Unknown transaction type: ${transaction.type}`);
     }
 
-    const result = await connection.query(queryData.query, queryData.values);
-    console.log(`Inserted transaction ${transaction.type} with ID: ${result.rows[0]?.id}`);
+    const [result] = await connection.execute(queryData.query, queryData.values);
+    console.log(`Inserted transaction ${transaction.type} with ID: ${result.insertId}`);
     return result;
 
   } catch (error) {
@@ -65,7 +65,7 @@ export async function storeSMSData(connection) {
     const xmlData = await parseXMLFile('data/dump.xml');
     const transactions = await processTransactions(xmlData);
 
-    await connection.query('BEGIN');
+    await connection.query('START TRANSACTION');
 
     for (const transaction of transactions) {
       await insertTransaction(connection, transaction);
@@ -76,5 +76,7 @@ export async function storeSMSData(connection) {
   } catch (error) {
     await connection.query('ROLLBACK');
     console.error(`Data processing failed: ${error.message}`);
+  } finally {
+    await connection.end();
   }
 }

@@ -1,18 +1,17 @@
-import pkg from 'pg';
-const { Pool } = pkg;
+import {createConnection} from "mysql2/promise";
 import dotenv from "dotenv";
 
 dotenv.config();
 
 class DatabaseConnection {
   constructor() {
-    this.pool = null;
+    this.connection = null;
     this.isConnected = false;
   }
 
-  async connect() {
-    if (this.pool && this.isConnected) {
-      return this.pool;
+  async connect(withDB = true) {
+    if (this.connection && this.isConnected) {
+      return this.connection;
     }
 
     try {
@@ -25,15 +24,18 @@ class DatabaseConnection {
         connectTimeout: 10000,
       });
 
-      // Test the connection
-      const client = await this.pool.connect();
-      client.release();
-      
       this.isConnected = true;
       console.log('Database connected successfully');
-      return this.pool;
+      return this.connection;
     } catch (error) {
       console.error('Database connection failed:', error.message);
+      console.error('Full error details:', {
+        message: error.message,
+        code: error.code,
+        errno: error.errno,
+        sqlState: error.sqlState
+      });
+    
       throw new Error('Database connection failed');
     }
   }
