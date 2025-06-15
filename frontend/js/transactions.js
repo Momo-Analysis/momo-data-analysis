@@ -10,6 +10,46 @@ document.addEventListener("DOMContentLoaded", () => {
   let searchTimeout = null; // For debouncing search input
   let currentRequest = null; // For tracking and canceling in-flight requests
 
+  // --- THEME TOGGLE FUNCTIONALITY ---
+  function initThemeToggle() {
+    const themeToggle = document.getElementById("theme-toggle");
+    const sunIcon = document.getElementById("sun-icon");
+    const moonIcon = document.getElementById("moon-icon");
+    const body = document.body;
+
+    // Check for saved theme preference or default to light mode
+    const savedTheme = localStorage.getItem("theme") || "light";
+
+    if (savedTheme === "dark") {
+      body.classList.add("dark");
+      sunIcon.classList.remove("hidden");
+      moonIcon.classList.add("hidden");
+    } else {
+      body.classList.remove("dark");
+      sunIcon.classList.add("hidden");
+      moonIcon.classList.remove("hidden");
+    }
+
+    // Theme toggle event listener
+    themeToggle.addEventListener("click", () => {
+      const isDark = body.classList.contains("dark");
+
+      if (isDark) {
+        // Switch to light mode
+        body.classList.remove("dark");
+        sunIcon.classList.add("hidden");
+        moonIcon.classList.remove("hidden");
+        localStorage.setItem("theme", "light");
+      } else {
+        // Switch to dark mode
+        body.classList.add("dark");
+        sunIcon.classList.remove("hidden");
+        moonIcon.classList.add("hidden");
+        localStorage.setItem("theme", "dark");
+      }
+    });
+  }
+
   // --- API CALLS ---
   async function fetchTransactionTypes() {
     try {
@@ -43,7 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const queryParams = new URLSearchParams({
         q: query,
         page: currentPage,
-        limit
+        limit,
       });
 
       // Add other filters if they are set
@@ -51,9 +91,12 @@ document.addEventListener("DOMContentLoaded", () => {
       if (startDate) queryParams.append("startDate", startDate);
       if (endDate) queryParams.append("endDate", endDate);
 
-      const response = await fetch(`${API_BASE_URL}?${queryParams.toString()}`, {
-        signal: controller.signal
-      });
+      const response = await fetch(
+        `${API_BASE_URL}?${queryParams.toString()}`,
+        {
+          signal: controller.signal,
+        }
+      );
 
       // Clear the current request if it's this one
       if (currentRequest === controller) {
@@ -67,7 +110,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return result;
     } catch (error) {
       // Don't log abort errors as they're expected
-      if (error.name !== 'AbortError') {
+      if (error.name !== "AbortError") {
         console.error("Error fetching search results:", error);
       }
       return {
@@ -107,9 +150,12 @@ document.addEventListener("DOMContentLoaded", () => {
       const controller = new AbortController();
       currentRequest = controller;
 
-      const response = await fetch(`${API_BASE_URL}?${queryParams.toString()}`, {
-        signal: controller.signal
-      });
+      const response = await fetch(
+        `${API_BASE_URL}?${queryParams.toString()}`,
+        {
+          signal: controller.signal,
+        }
+      );
 
       // Clear the current request if it's this one
       if (currentRequest === controller) {
@@ -123,7 +169,7 @@ document.addEventListener("DOMContentLoaded", () => {
       return result;
     } catch (error) {
       // Don't log abort errors as they're expected
-      if (error.name !== 'AbortError') {
+      if (error.name !== "AbortError") {
         console.error("Error fetching transactions:", error);
       }
       return {
@@ -162,7 +208,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // --- UI RENDERING ---
   async function renderTransactionList() {
     const list = document.getElementById("transaction-list");
-    list.innerHTML = "<tr><td colspan='5' class='text-center py-10 text-gray-500'>Loading...</td></tr>";
+    list.innerHTML =
+      "<tr><td colspan='5' class='text-center py-10 text-gray-500'>Loading...</td></tr>";
 
     let result;
     // Use the appropriate fetch method based on whether there's a search query
@@ -192,7 +239,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
     if (sorted.length === 0) {
       list.innerHTML = `<tr><td colspan="5" class="text-center py-10 text-gray-500">${
-        state.filters.search ? "No transactions found matching your search." : "No transactions found for the selected filters."
+        state.filters.search
+          ? "No transactions found matching your search."
+          : "No transactions found for the selected filters."
       }</td></tr>`;
     } else {
       sorted.forEach((tx) => {
@@ -203,21 +252,32 @@ document.addEventListener("DOMContentLoaded", () => {
         row.innerHTML = `
           <td class="px-6 py-4 whitespace-nowrap">
               <div class="text-sm font-medium text-gray-900" title="ID">
-                  <span class="underline decoration-dotted hover:no-underline">${tx.id}</span>
-                  ${tx.transactionId
-                      ? ' ' + `<span class="font-normal text-gray-500 underline decoration-dotted hover:no-underline" title="TxID">${tx.transactionId}</span>`
-                      : ''
+                  <span class="underline decoration-dotted hover:no-underline">${
+                    tx.id
+                  }</span>
+                  ${
+                    tx.transactionId
+                      ? " " +
+                        `<span class="font-normal text-gray-500 underline decoration-dotted hover:no-underline" title="TxID">${tx.transactionId}</span>`
+                      : ""
                   }
               </div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
-              <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border-blue-500 border">${tx.type.replace('_', ' ')}</div>
+              <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border-blue-500 border">${tx.type.replace(
+                "_",
+                " "
+              )}</div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm text-gray-900">${tx.amount.toLocaleString("en-US")} ${tx.currency || "RWF"}</div>
+              <div class="text-sm text-gray-900">${tx.amount.toLocaleString(
+                "en-US"
+              )} ${tx.currency || "RWF"}</div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
-              <div class="text-sm text-gray-500">${new Date(tx.timestamp).toLocaleDateString()}</div>
+              <div class="text-sm text-gray-500">${new Date(
+                tx.timestamp
+              ).toLocaleDateString()}</div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
               <a href="#" class="text-blue-600 hover:text-blue-900">View</a>
@@ -233,7 +293,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function renderPaginationControls() {
     const container = document.getElementById("pagination-controls");
     container.innerHTML = "";
-    const { currentPage, totalPages, hasNextPage, hasPrevPage } = state.pagination;
+    const { currentPage, totalPages, hasNextPage, hasPrevPage } =
+      state.pagination;
 
     if (totalPages <= 1) return;
 
@@ -254,7 +315,7 @@ document.addEventListener("DOMContentLoaded", () => {
     types.forEach((type) => {
       const option = document.createElement("option");
       option.value = type;
-      option.textContent = type.toLowerCase().replace('_', ' ');
+      option.textContent = type.toLowerCase().replace("_", " ");
       select.appendChild(option);
     });
   }
@@ -267,20 +328,44 @@ document.addEventListener("DOMContentLoaded", () => {
     const modalContent = document.getElementById("modal-content");
 
     let detailsHtml = `<ul class="space-y-2 text-sm">
-      <li><strong class="font-medium text-gray-600 w-24 inline-block">ID:</strong> ${transaction.id }</li>
-      <li><strong class="font-medium text-gray-600 w-24 inline-block">TxID:</strong> ${transaction.transactionId}</li>
-      <li><strong class="font-medium text-gray-600 w-24 inline-block">Type:</strong> ${transaction.type}</li>
-      <li><strong class="font-medium text-gray-600 w-24 inline-block">Amount:</strong> ${transaction.amount.toLocaleString("en-US")} ${transaction.currency || "RWF"}</li>
-      <li><strong class="font-medium text-gray-600 w-24 inline-block">Date:</strong> ${new Date(transaction.timestamp).toLocaleString()}</li>
+      <li><strong class="font-medium text-gray-600 w-24 inline-block">ID:</strong> ${
+        transaction.id
+      }</li>
+      <li><strong class="font-medium text-gray-600 w-24 inline-block">TxID:</strong> ${
+        transaction.transactionId
+      }</li>
+      <li><strong class="font-medium text-gray-600 w-24 inline-block">Type:</strong> ${
+        transaction.type
+      }</li>
+      <li><strong class="font-medium text-gray-600 w-24 inline-block">Amount:</strong> ${transaction.amount.toLocaleString(
+        "en-US"
+      )} ${transaction.currency || "RWF"}</li>
+      <li><strong class="font-medium text-gray-600 w-24 inline-block">Date:</strong> ${new Date(
+        transaction.timestamp
+      ).toLocaleString()}</li>
     </ul><hr class="my-3">
     <h4 class="font-semibold text-gray-800 mb-2">Additional Details:</h4>
     <ul class="space-y-2 text-sm">`;
 
     // Include all additional fields dynamically
     for (const [key, value] of Object.entries(transaction)) {
-      if (["id", "transactionId", "type", "amount", "timestamp", "currency", "table_name"].includes(key)) continue;
+      if (
+        [
+          "id",
+          "transactionId",
+          "type",
+          "amount",
+          "timestamp",
+          "currency",
+          "table_name",
+        ].includes(key)
+      )
+        continue;
       if (value !== null && value !== undefined) {
-        detailsHtml += `<li><strong class="font-medium text-gray-600 w-24 inline capitalize">${key.replace("_", " ")}:</strong> ${value}</li>`;
+        detailsHtml += `<li><strong class="font-medium text-gray-600 w-24 inline capitalize">${key.replace(
+          "_",
+          " "
+        )}:</strong> ${value}</li>`;
       }
     }
 
@@ -299,7 +384,8 @@ document.addEventListener("DOMContentLoaded", () => {
   function handleFilterChange() {
     // Update filter state from form fields
     state.filters.type = document.getElementById("filter-type").value;
-    state.filters.startDate = document.getElementById("filter-start-date").value;
+    state.filters.startDate =
+      document.getElementById("filter-start-date").value;
     state.filters.endDate = document.getElementById("filter-end-date").value;
 
     // Reset to first page when filters change
@@ -368,7 +454,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function handleSort(field) {
     if (state.sorting.field === field) {
-      state.sorting.direction = state.sorting.direction === "asc" ? "desc" : "asc";
+      state.sorting.direction =
+        state.sorting.direction === "asc" ? "desc" : "asc";
     } else {
       state.sorting.field = field;
       state.sorting.direction = "asc";
@@ -386,7 +473,9 @@ document.addEventListener("DOMContentLoaded", () => {
     });
 
     if (state.sorting.field) {
-      const activeHeader = document.querySelector(`[data-sort="${state.sorting.field}"]`);
+      const activeHeader = document.querySelector(
+        `[data-sort="${state.sorting.field}"]`
+      );
       if (activeHeader) {
         const icon = activeHeader.querySelector("svg");
         icon.classList.remove("text-gray-400");
@@ -404,31 +493,43 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   // --- EVENT LISTENERS ---
-  document.getElementById("filter-type").addEventListener("change", handleFilterChange);
-  document.getElementById("filter-start-date").addEventListener("change", handleFilterChange);
-  document.getElementById("filter-end-date").addEventListener("change", handleFilterChange);
-  document.getElementById("search-input").addEventListener("input", handleSearchInput);
+  document
+    .getElementById("filter-type")
+    .addEventListener("change", handleFilterChange);
+  document
+    .getElementById("filter-start-date")
+    .addEventListener("change", handleFilterChange);
+  document
+    .getElementById("filter-end-date")
+    .addEventListener("change", handleFilterChange);
+  document
+    .getElementById("search-input")
+    .addEventListener("input", handleSearchInput);
 
-  document.getElementById("pagination-controls").addEventListener("click", (e) => {
-    if (e.target.id === "prev-page" && state.pagination.hasPrevPage) {
-      state.pagination.currentPage--;
-      renderTransactionList();
-    }
-    if (e.target.id === "next-page" && state.pagination.hasNextPage) {
-      state.pagination.currentPage++;
-      renderTransactionList();
-    }
-  });
+  document
+    .getElementById("pagination-controls")
+    .addEventListener("click", (e) => {
+      if (e.target.id === "prev-page" && state.pagination.hasPrevPage) {
+        state.pagination.currentPage--;
+        renderTransactionList();
+      }
+      if (e.target.id === "next-page" && state.pagination.hasNextPage) {
+        state.pagination.currentPage++;
+        renderTransactionList();
+      }
+    });
 
-  document.getElementById("transaction-list").addEventListener("click", async (e) => {
-    const row = e.target.closest("tr");
-    if (!row) return;
+  document
+    .getElementById("transaction-list")
+    .addEventListener("click", async (e) => {
+      const row = e.target.closest("tr");
+      if (!row) return;
 
-    const id = row.dataset.transactionId;
-    console.log(row.dataset);
-    const transactionType = row.dataset.transactionType;
-    await renderModal(id, transactionType);
-  });
+      const id = row.dataset.transactionId;
+      console.log(row.dataset);
+      const transactionType = row.dataset.transactionType;
+      await renderModal(id, transactionType);
+    });
 
   document.getElementById("modal-close").addEventListener("click", () => {
     document.getElementById("modal-container").classList.add("hidden");
@@ -453,14 +554,22 @@ document.addEventListener("DOMContentLoaded", () => {
   function resetFormFields() {
     // Reset form fields to match the state
     document.getElementById("filter-type").value = state.filters.type;
-    document.getElementById("filter-start-date").value = state.filters.startDate;
+    document.getElementById("filter-start-date").value =
+      state.filters.startDate;
     document.getElementById("filter-end-date").value = state.filters.endDate;
     document.getElementById("search-input").value = state.filters.search;
   }
-
   async function init() {
+    // Initialize theme toggle
+    initThemeToggle();
+
     // Reset state and form fields on page load
-    state.filters = { type: "All Types", startDate: "", endDate: "", search: "" };
+    state.filters = {
+      type: "All Types",
+      startDate: "",
+      endDate: "",
+      search: "",
+    };
     state.pagination = { currentPage: 1, limit: 7, totalPages: 1 };
     state.sorting = { field: null, direction: "asc" };
 

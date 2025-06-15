@@ -12,6 +12,46 @@ document.addEventListener("DOMContentLoaded", () => {
   const chartInstances = {};
   const API_BASE_URL = "http://localhost:3000/api";
 
+  // --- THEME TOGGLE FUNCTIONALITY ---
+  function initThemeToggle() {
+    const themeToggle = document.getElementById("theme-toggle");
+    const sunIcon = document.getElementById("sun-icon");
+    const moonIcon = document.getElementById("moon-icon");
+    const body = document.body;
+
+    // Check for saved theme preference or default to light mode
+    const savedTheme = localStorage.getItem("theme") || "light";
+
+    if (savedTheme === "dark") {
+      body.classList.add("dark");
+      sunIcon.classList.remove("hidden");
+      moonIcon.classList.add("hidden");
+    } else {
+      body.classList.remove("dark");
+      sunIcon.classList.add("hidden");
+      moonIcon.classList.remove("hidden");
+    }
+
+    // Theme toggle event listener
+    themeToggle.addEventListener("click", () => {
+      const isDark = body.classList.contains("dark");
+
+      if (isDark) {
+        // Switch to light mode
+        body.classList.remove("dark");
+        sunIcon.classList.add("hidden");
+        moonIcon.classList.remove("hidden");
+        localStorage.setItem("theme", "light");
+      } else {
+        // Switch to dark mode
+        body.classList.add("dark");
+        sunIcon.classList.remove("hidden");
+        moonIcon.classList.add("hidden");
+        localStorage.setItem("theme", "dark");
+      }
+    });
+  }
+
   // --- API CALLS ---
   async function checkApiHealth() {
     try {
@@ -27,11 +67,14 @@ document.addEventListener("DOMContentLoaded", () => {
   async function fetchTransactionStats(filters = {}) {
     try {
       const queryParams = new URLSearchParams();
-      if (filters.type && filters.type !== "All Types") queryParams.append("type", filters.type);
+      if (filters.type && filters.type !== "All Types")
+        queryParams.append("type", filters.type);
       if (filters.startDate) queryParams.append("startDate", filters.startDate);
       if (filters.endDate) queryParams.append("endDate", filters.endDate);
 
-      const response = await fetch(`${API_BASE_URL}/transactions/stats?${queryParams.toString()}`);
+      const response = await fetch(
+        `${API_BASE_URL}/transactions/stats?${queryParams.toString()}`
+      );
       const result = await response.json();
       if (!result.success) {
         throw new Error(result.message || "Failed to fetch transaction stats");
@@ -62,14 +105,17 @@ document.addEventListener("DOMContentLoaded", () => {
   async function renderDashboard() {
     const isApiHealthy = await checkApiHealth();
     if (!isApiHealthy) {
-      alert("The API is currently unavailable. Dashboard data may not load correctly.");
+      alert(
+        "The API is currently unavailable. Dashboard data may not load correctly."
+      );
     }
 
     const stats = await fetchTransactionStats(state.filters);
 
     // Use chart data from stats endpoint instead of fetching all transactions
     if (stats.chartData) {
-      state.dashboardSummary.totalVolumeByType = stats.chartData.totalVolumeByType;
+      state.dashboardSummary.totalVolumeByType =
+        stats.chartData.totalVolumeByType;
       state.dashboardSummary.monthlySummary = stats.chartData.monthlySummary;
       state.dashboardSummary.distribution = stats.chartData.distribution;
     }
@@ -93,7 +139,8 @@ document.addEventListener("DOMContentLoaded", () => {
     const avgAmountEl = document.getElementById("avg-amount");
 
     if (totalTransactionsEl) {
-      totalTransactionsEl.textContent = totalTransactions.toLocaleString("en-US");
+      totalTransactionsEl.textContent =
+        totalTransactions.toLocaleString("en-US");
     }
     if (totalVolumeEl) {
       totalVolumeEl.textContent = totalVolume.toLocaleString("en-US");
@@ -102,7 +149,8 @@ document.addEventListener("DOMContentLoaded", () => {
       transactionTypesEl.textContent = transactionTypes.toString();
     }
     if (avgAmountEl) {
-      avgAmountEl.textContent = Math.round(averageAmount).toLocaleString("en-US");
+      avgAmountEl.textContent =
+        Math.round(averageAmount).toLocaleString("en-US");
     }
   }
 
@@ -183,6 +231,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // --- INITIALIZATION ---
   async function init() {
+    initThemeToggle();
     await renderDashboard();
   }
 
