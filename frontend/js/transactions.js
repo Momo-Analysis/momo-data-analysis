@@ -264,7 +264,7 @@ document.addEventListener("DOMContentLoaded", () => {
               </div>
           </td>
           <td class="px-6 py-4 whitespace-nowrap">
-              <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border-blue-500 border">${tx.type.replace(
+              <div class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 border-blue-500 border type-badge">${tx.type.replace(
                 "_",
                 " "
               )}</div>

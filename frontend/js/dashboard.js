@@ -218,6 +218,8 @@ document.addEventListener("DOMContentLoaded", () => {
             "rgba(178, 34, 34, 0.7)", // Fire brick - THIRD_PARTY
           ],
           hoverOffset: 4,
+          borderWidth: 1,
+          borderColor: "hsl(217, 19%, 50%)",
         },
       ],
     };
