@@ -123,7 +123,10 @@ These are the supported categories for transaction analysis:
 ```bash
 cd backend
 npm install
-npm run dev
+cp .env.example .env
+# fill .env with user and password
+npm run setup:db
+npm start
 ```
 
 Open http\://localhost:3000 in your browser.
