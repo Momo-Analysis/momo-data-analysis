@@ -179,6 +179,7 @@ body.dark .border-gray-200 {
 /* Dark mode for form inputs */
 body.dark input[type="text"],
 body.dark input[type="date"],
+body.dark input[type="number"],
 body.dark select {
   background-color: #374151;
   border-color: #4b5563;
@@ -187,12 +188,14 @@ body.dark select {
 
 body.dark input[type="text"]:focus,
 body.dark input[type="date"]:focus,
+body.dark input[type="number"]:focus,
 body.dark select:focus {
   border-color: #6366f1;
   background-color: #374151;
 }
 
-body.dark input[type="text"]::placeholder {
+body.dark input[type="text"]::placeholder,
+body.dark input[type="number"]::placeholder {
   color: #9ca3af;
 }
 
