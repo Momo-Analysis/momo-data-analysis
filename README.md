@@ -4,6 +4,17 @@ A full-stack application for parsing, storing, filtering, and analyzing Mobile M
 
 ---
 
+## 📹 Demo Deliverables
+
+### Required Files:
+
+1. **[Demo Video](https://drive.google.com/file/d/1pvi_BlxLe-pibvoiGF-dqbTnxCTGowgq/view)** - Video demonstration of key features and functionality
+2. **[Source Code Archive](https://drive.google.com/file/d/14rGCDCr4-uDUj7fnvJospk6_SAT7PPUS/view)** - Complete project files in .zip format
+3. **[Database File](https://drive.google.com/file/d/1k9CzFmepzAcjhrl_M68tyBXmLff2mO7g/view)** - MySQL database with actual data
+4. **[Technical Report](https://drive.google.com/file/d/1f3bq2-C0mnh7BCcSjWuFwL-F4ULEa_AU/view)** - PDF report covering our approach, challenges, and key decisions made
+
+---
+
 ## 🚀 Features
 
 ### Backend (Express.js + MySQL)
@@ -141,7 +152,6 @@ Open http\://localhost:3000 in your browser.
 * All filters apply only to the transaction list
 * Charts are powered by Chart.js
 
----
 
 ## 🛍 Support
 
