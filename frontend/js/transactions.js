@@ -1,7 +1,14 @@
 document.addEventListener("DOMContentLoaded", () => {
   const state = {
     transactions: [],
-    filters: { type: "All Types", startDate: "", endDate: "", search: "" },
+    filters: { 
+      type: "All Types", 
+      startDate: "", 
+      endDate: "", 
+      search: "",
+      minAmount: "",
+      maxAmount: ""
+    },
     pagination: { currentPage: 1, limit: 7, totalPages: 1 },
     sorting: { field: null, direction: "asc" },
   };
@@ -28,7 +35,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function fetchSearchResults(query) {
     const { currentPage, limit } = state.pagination;
-    const { type, startDate, endDate } = state.filters;
+    const { type, startDate, endDate, minAmount, maxAmount } = state.filters;
 
     try {
       // Cancel any in-flight request
@@ -50,6 +57,8 @@ document.addEventListener("DOMContentLoaded", () => {
       if (type !== "All Types") queryParams.append("type", type);
       if (startDate) queryParams.append("startDate", startDate);
       if (endDate) queryParams.append("endDate", endDate);
+      if (minAmount) queryParams.append("minAmount", minAmount);
+      if (maxAmount) queryParams.append("maxAmount", maxAmount);
 
       const response = await fetch(`${API_BASE_URL}?${queryParams.toString()}`, {
         signal: controller.signal
@@ -86,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   async function fetchTransactions() {
     const { currentPage, limit } = state.pagination;
-    const { type, startDate, endDate } = state.filters;
+    const { type, startDate, endDate, minAmount, maxAmount } = state.filters;
 
     const queryParams = new URLSearchParams({
       page: currentPage,
@@ -96,6 +105,8 @@ document.addEventListener("DOMContentLoaded", () => {
     if (type !== "All Types") queryParams.append("type", type);
     if (startDate) queryParams.append("startDate", startDate);
     if (endDate) queryParams.append("endDate", endDate);
+    if (minAmount) queryParams.append("minAmount", minAmount);
+    if (maxAmount) queryParams.append("maxAmount", maxAmount);
 
     try {
       // Cancel any in-flight request
@@ -296,11 +307,32 @@ document.addEventListener("DOMContentLoaded", () => {
     return state.transactions;
   }
 
+  function validateAmountRange() {
+    const minAmount = parseFloat(document.getElementById("filter-min-amount").value);
+    const maxAmount = parseFloat(document.getElementById("filter-max-amount").value);
+    const errorDiv = document.getElementById("amount-range-error");
+
+    if (minAmount && maxAmount && minAmount > maxAmount) {
+      errorDiv.classList.remove("hidden");
+      return false;
+    }
+    
+    errorDiv.classList.add("hidden");
+    return true;
+  }
+
   function handleFilterChange() {
+    // Validate amount range before applying filters
+    if (!validateAmountRange()) {
+      return;
+    }
+
     // Update filter state from form fields
     state.filters.type = document.getElementById("filter-type").value;
     state.filters.startDate = document.getElementById("filter-start-date").value;
     state.filters.endDate = document.getElementById("filter-end-date").value;
+    state.filters.minAmount = document.getElementById("filter-min-amount").value;
+    state.filters.maxAmount = document.getElementById("filter-max-amount").value;
 
     // Reset to first page when filters change
     state.pagination.currentPage = 1;
@@ -409,6 +441,14 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("filter-end-date").addEventListener("change", handleFilterChange);
   document.getElementById("search-input").addEventListener("input", handleSearchInput);
 
+  // Add event listeners for amount filters
+  document.getElementById("filter-min-amount").addEventListener("change", handleFilterChange);
+  document.getElementById("filter-max-amount").addEventListener("change", handleFilterChange);
+
+  // Add event listeners for amount range inputs
+  document.getElementById("filter-min-amount").addEventListener("input", handleFilterChange);
+  document.getElementById("filter-max-amount").addEventListener("input", handleFilterChange);
+
   document.getElementById("pagination-controls").addEventListener("click", (e) => {
     if (e.target.id === "prev-page" && state.pagination.hasPrevPage) {
       state.pagination.currentPage--;
@@ -455,6 +495,8 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("filter-type").value = state.filters.type;
     document.getElementById("filter-start-date").value = state.filters.startDate;
     document.getElementById("filter-end-date").value = state.filters.endDate;
+    document.getElementById("filter-min-amount").value = state.filters.minAmount;
+    document.getElementById("filter-max-amount").value = state.filters.maxAmount;
     document.getElementById("search-input").value = state.filters.search;
   }
 
