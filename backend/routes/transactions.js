@@ -9,7 +9,7 @@ router.get('/', async (req, res) => {
   try {
     const page = Math.max(1, parseInt(req.query.page) || 1);
     const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
-    
+
     const filters = {};
 
     if (req.query.q) filters.q = req.query.q;
@@ -21,7 +21,7 @@ router.get('/', async (req, res) => {
     if (req.query.maxAmount !== undefined) filters.maxAmount = parseFloat(req.query.maxAmount);
 
     const result = await TransactionService.getAllTransactions(filters, page, limit);
-    
+
     res.json({
       success: true,
       message: 'Transactions fetched successfully',
@@ -36,7 +36,7 @@ router.get('/', async (req, res) => {
       },
       filters: filters
     });
-    
+
   } catch (error) {
     console.error('Error in GET /api/transactions:', error);
     res.status(500).json({
@@ -51,7 +51,7 @@ router.get('/', async (req, res) => {
 router.get('/stats', async (req, res) => {
   try {
     const filters = {};
-    
+
     if (req.query.type) filters.type = req.query.type;
     if (req.query.date) filters.date = req.query.date;
     if (req.query.startDate) filters.startDate = req.query.startDate;
@@ -60,14 +60,14 @@ router.get('/stats', async (req, res) => {
     if (req.query.maxAmount !== undefined) filters.maxAmount = parseFloat(req.query.maxAmount);
 
     const stats = await TransactionService.getTransactionStats(filters);
-    
+
     res.json({
       success: true,
       message: 'Transaction statistics fetched successfully',
       data: stats,
       filters: filters
     });
-    
+
   } catch (error) {
     console.error('Error in GET /api/transactions/stats:', error);
     res.status(500).json({
@@ -82,13 +82,13 @@ router.get('/stats', async (req, res) => {
 router.get('/types', (req, res) => {
   try {
     const types = TransactionService.getTransactionTypes();
-    
+
     res.json({
       success: true,
       message: 'Transaction types fetched successfully',
       data: types
     });
-    
+
   } catch (error) {
     console.error('Error in GET /api/transactions/types:', error);
     res.status(500).json({
@@ -112,18 +112,23 @@ router.get('/:type/:id', async (req, res) => {
     // Search across choosen table for the transaction ID
     for (const tableName of tableNames) {
       try {
-        const query = `SELECT *, '${tableName}' as table_name FROM ${tableName} WHERE transactionId = ? OR id = ?`;
+        const query = `
+            SELECT c.*, t.id, t.type, t.amount, t.timestamp, t.originalSMS
+            FROM transactions t
+               JOIN ${tableName} c ON c.parent = t.id
+            WHERE t.id = ?
+               OR c.transactionId = ?
+        `;
         const [rows] = await connection.execute(query, [transactionId, transactionId]);
-        
+
         if (rows.length > 0) {
           foundTransaction = rows[0];
-          break;
         }
       } catch (error) {
         console.error(`Error searching in table ${tableName}:`, error);
       }
     }
-    
+
     if (foundTransaction) {
       res.json({
         success: true,
@@ -136,7 +141,7 @@ router.get('/:type/:id', async (req, res) => {
         message: 'Transaction not found'
       });
     }
-    
+
   } catch (error) {
     console.error('Error in GET /api/transactions/:type/:id', error);
     res.status(500).json({
@@ -153,15 +158,20 @@ router.get('/:transactionId', async (req, res) => {
     const connection = await dbInstance.getConnection();
     const transactionId = req.params.transactionId;
     const tableNames = TransactionService.getTableNames();
-    
+
     let foundTransaction = null;
-    
+
     // Search across all tables for the transaction transactionId
     for (const tableName of tableNames) {
       try {
-        const query = `SELECT *, '${tableName}' as table_name FROM ${tableName} WHERE transactionId = ?`;
+        const query = `
+            SELECT c.*, t.id, t.type, t.amount, t.timestamp, t.originalSMS, '${tableName}' as table_name
+            FROM transactions t
+                     JOIN ${tableName} c ON c.parent = t.id
+            WHERE c.transactionId = ?
+        `;
         const [rows] = await connection.execute(query, [transactionId]);
-        
+
         if (rows.length > 0) {
           foundTransaction = rows[0];
           break;
@@ -170,7 +180,7 @@ router.get('/:transactionId', async (req, res) => {
         console.error(`Error searching in table ${tableName}:`, error);
       }
     }
-    
+
     if (foundTransaction) {
       res.json({
         success: true,
@@ -183,7 +193,7 @@ router.get('/:transactionId', async (req, res) => {
         message: 'Transaction not found'
       });
     }
-    
+
   } catch (error) {
     console.error('Error in GET /api/transactions/:transactionId:', error);
     res.status(500).json({
@@ -193,6 +203,5 @@ router.get('/:transactionId', async (req, res) => {
     });
   }
 });
-
 
 export default router;

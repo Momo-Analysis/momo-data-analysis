@@ -49,9 +49,18 @@ async function insertTransaction(connection, transaction) {
         throw new Error(`Unknown transaction type: ${transaction.type}`);
     }
 
-    const [result] = await connection.execute(queryData.query, queryData.values);
-    console.log(`Inserted transaction ${transaction.type} with ID: ${result.insertId}`);
-    return result;
+    // First insert the parent transaction
+    const [parentResult] = await connection.execute(queryData.parentQuery.query, queryData.parentQuery.values);
+    const parentId = parentResult.insertId;
+
+    // Then insert the child record with the actual parent ID
+    const childValues = [parentId, ...queryData.values];
+    const childQuery = queryData.query.replace('LAST_INSERT_ID()', '?');
+
+    const [childResult] = await connection.execute(childQuery, childValues);
+
+    console.log(`Inserted transaction ${transaction.type} with parent ID: ${parentId}, child ID: ${childResult.insertId}`);
+    return { parentId, childId: childResult.insertId };
 
   } catch (error) {
     console.error(`Database insertion failed for ${transaction.type}:`, error);
