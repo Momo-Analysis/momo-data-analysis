@@ -16,43 +16,43 @@ class Transaction {
 
     // Add text search filter
     if (filters.q) {
-      conditions.push('originalSMS LIKE ?');
+      conditions.push('t.originalSMS LIKE ?');
       params.push(`%${filters.q}%`);
     }
 
     // Filter by type
     if (filters.type && this.getTransactionTypes().includes(filters.type.toUpperCase())) {
-      conditions.push('type = ?');
+      conditions.push('t.type = ?');
       params.push(filters.type.toUpperCase());
     }
 
     // Filter by date (exact day)
     if (filters.date) {
-      conditions.push('DATE(timestamp) = ?');
+      conditions.push('DATE(t.timestamp) = ?');
       params.push(filters.date);
     }
 
     // Filter by date range
     if (filters.startDate && filters.endDate) {
-      conditions.push('DATE(timestamp) BETWEEN ? AND ?');
+      conditions.push('DATE(t.timestamp) BETWEEN ? AND ?');
       params.push(filters.startDate, filters.endDate);
     } else if (filters.startDate) {
-      conditions.push('DATE(timestamp) >= ?');
+      conditions.push('DATE(t.timestamp) >= ?');
       params.push(filters.startDate);
     } else if (filters.endDate) {
-      conditions.push('DATE(timestamp) <= ?');
+      conditions.push('DATE(t.timestamp) <= ?');
       params.push(filters.endDate);
     }
 
     // Filter by amount range
     if (filters.minAmount !== undefined && filters.maxAmount !== undefined) {
-      conditions.push('amount BETWEEN ? AND ?');
+      conditions.push('t.amount BETWEEN ? AND ?');
       params.push(parseFloat(filters.minAmount), parseFloat(filters.maxAmount));
     } else if (filters.minAmount !== undefined) {
-      conditions.push('amount >= ?');
+      conditions.push('t.amount >= ?');
       params.push(parseFloat(filters.minAmount));
     } else if (filters.maxAmount !== undefined) {
-      conditions.push('amount <= ?');
+      conditions.push('t.amount <= ?');
       params.push(parseFloat(filters.maxAmount));
     }
 
@@ -67,15 +67,22 @@ class Transaction {
       const { whereClause, params } = this.buildWhereClause(filters);
 
       // Get total count
-      const countQuery = `SELECT COUNT(*) as total FROM ${tableName} ${whereClause}`;
+      const countQuery = `
+        SELECT COUNT(*) as total 
+        FROM transactions t
+        JOIN ${tableName} c ON c.parent = t.id
+        ${whereClause}
+      `;
       const [countResult] = await connection.execute(countQuery, params);
       const totalRecords = countResult[0].total;
 
       // Get paginated data
       const dataQuery = `
-        SELECT * FROM ${tableName} 
+        SELECT c.*, t.id, t.type, t.amount, t.timestamp, t.originalSMS
+        FROM transactions t
+        JOIN ${tableName} c ON c.parent = t.id
         ${whereClause} 
-        ORDER BY timestamp DESC 
+        ORDER BY t.timestamp DESC 
         LIMIT ? OFFSET ?
       `;
       const [rows] = await connection.execute(dataQuery, [...params, limit.toString(), offset.toString()]);
@@ -125,7 +132,9 @@ class Transaction {
         const { whereClause, params } = this.buildWhereClause(filters);
 
         const query = `
-          SELECT *, '${transactionTypes[tableName]}' as transaction_type FROM ${tableName} 
+          SELECT c.*, t.id, t.type, t.amount, t.timestamp, t.originalSMS, '${transactionTypes[tableName]}' as transaction_type 
+          FROM transactions t
+          JOIN ${tableName} c ON c.parent = t.id
           ${whereClause}
         `;
 
@@ -194,24 +203,26 @@ class Transaction {
         const query = `
           SELECT 
             COUNT(*) as count,
-            SUM(amount) as total_amount,
-            AVG(amount) as avg_amount,
-            type
-          FROM ${tableName} 
+            SUM(t.amount) as total_amount,
+            AVG(t.amount) as avg_amount,
+            t.type
+          FROM transactions t
+          JOIN ${tableName} c ON c.parent = t.id
           ${whereClause}
-          GROUP BY type
+          GROUP BY t.type
         `;
 
         // Monthly data query
         const monthlyQuery = `
           SELECT
-            YEAR(timestamp) as year,
-            MONTH(timestamp) as month,
-            type,
-            SUM(amount) as total_amount
-          FROM ${tableName}
+            YEAR(t.timestamp) as year,
+            MONTH(t.timestamp) as month,
+            t.type,
+            SUM(t.amount) as total_amount
+          FROM transactions t
+          JOIN ${tableName} c ON c.parent = t.id
           ${whereClause}
-          GROUP BY YEAR(timestamp), MONTH(timestamp), type
+          GROUP BY YEAR(t.timestamp), MONTH(t.timestamp), t.type
         `;
 
         try {
