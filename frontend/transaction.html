@@ -141,6 +141,36 @@
                 <!-- Options will be injected by JS -->
               </select>
             </div>
+
+            <!-- Amount Range Filter -->
+            <div>
+              <label
+                for="filter-min-amount"
+                class="block text-sm font-medium text-gray-700 mb-2"
+                >Amount Range</label
+              >
+              <div class="flex space-x-2">
+                <input
+                  type="number"
+                  id="filter-min-amount"
+                  placeholder="Min"
+                  min="0"
+                  class="w-1/2 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  oninput="this.validity.valid||(this.value='')"
+                />
+                <input
+                  type="number"
+                  id="filter-max-amount"
+                  placeholder="Max"
+                  min="0"
+                  class="w-1/2 border border-gray-300 rounded-md px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  oninput="this.validity.valid||(this.value='')"
+                />
+              </div>
+              <div id="amount-range-error" class="mt-1 text-sm text-red-600 hidden">
+                Max amount must be greater than min amount
+              </div>
+            </div>
           </div>
 
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
