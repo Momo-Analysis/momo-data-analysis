@@ -64,5 +64,4 @@ app.listen(PORT, () => {
   console.log(`   - GET  http://localhost:${PORT}/api/transactions/types`);
   console.log(`   - GET  http://localhost:${PORT}/api/transactions/:type/:id`);
   console.log(`   - GET  http://localhost:${PORT}/api/transactions/:transactionId`);
-  console.log(`   - GET  http://localhost:${PORT}/api/transactions/search`);
 });
